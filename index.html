@@ -106,14 +106,14 @@ details[open] summary{margin-bottom:10px}
 <div class="wrap" id="auth" hidden>
   <section class="card">
     <h1 style="margin-bottom:6px">บันทึกกะงาน</h1>
-    <p class="note" style="margin:0 0 12px">ใส่อีเมลของคุณ ระบบจะส่งรหัสเข้าอีเมลเพื่อยืนยันว่าเป็นคุณ ใช้อีเมลเดิมทุกครั้ง ไม่ว่าเข้าจากเครื่องไหน ข้อมูลที่เคยบันทึกจะอยู่ครบ</p>
+    <p class="note" style="margin:0 0 12px">เข้าสู่ระบบหรือสมัครสมาชิกด้วยอีเมลและรหัสผ่าน (ตั้งรหัสผ่านอย่างน้อย 6 ตัวอักษร) ใช้อีเมลเดิมทุกครั้ง ข้อมูลที่เคยบันทึกจะอยู่ครบ</p>
     <label for="em">อีเมล</label>
     <input id="em" type="email" autocomplete="email" inputmode="email" placeholder="name@example.com">
-    <button id="sendc" class="primary" style="width:100%;margin-top:10px">ส่งรหัสเข้าอีเมล</button>
-    <div id="codebox" hidden style="margin-top:14px">
-      <label for="cd">รหัสจากอีเมล</label>
-      <input id="cd" inputmode="numeric" autocomplete="one-time-code" placeholder="ใส่รหัสตัวเลขจากอีเมล">
-      <button id="verify" class="primary" style="width:100%;margin-top:10px">เข้าสู่ระบบ</button>
+    <label for="pw" style="margin-top:10px">รหัสผ่าน</label>
+    <input id="pw" type="password" autocomplete="current-password" placeholder="อย่างน้อย 6 ตัวอักษร">
+    <div class="btns" style="margin-top:12px">
+      <button id="login" class="primary">เข้าสู่ระบบ</button>
+      <button id="signup">สมัครสมาชิกใหม่</button>
     </div>
     <div class="msg" id="amsg" role="status"></div>
   </section>
@@ -234,7 +234,7 @@ function num(x){return Math.round((+x||0)*100)/100}
 var now=new Date(),Y=now.getFullYear(),M=now.getMonth();
 var S={sa:50,name:'',sal:20000,dv:30,hd:8,mul:1.5};
 var months={},sel={},multi=false,cs=null;
-var CONFIG={SUPABASE_URL:'https://rqkdgrnrafljrbdsaqeg.supabase.co',SUPABASE_ANON_KEY:'sb_publishable_EU6k2...'};
+var CONFIG={SUPABASE_URL:'https://rqkdgrnrafljrbdsaqeg.supabase.co',SUPABASE_ANON_KEY:'sb_publishable_EU6k22u7WSr72ltxR1aB2w_dL9ZhoXF'};
 var sb=null,uid=null,userEmail='',store='local',started=false;
 var dl={save:function(o){
   var url=URL.createObjectURL(o.data),a=document.createElement('a');
@@ -639,21 +639,22 @@ async function startApp(){
 }
 function amsg(t){$('amsg').textContent=t}
 function showAuth(){$('main').hidden=true;$('stv').hidden=true;$('auth').hidden=false}
-$('sendc').onclick=async function(){
-  var em=$('em').value.trim();
+$('login').onclick=async function(){
+  var em=$('em').value.trim(),pw=$('pw').value;
   if(!/^\S+@\S+\.\S+$/.test(em)){amsg('กรอกอีเมลให้ถูกต้องก่อน');return}
-  amsg('กำลังส่ง…');
-  var r=await sb.auth.signInWithOtp({email:em,options:{shouldCreateUser:true,emailRedirectTo:location.origin+location.pathname}});
-  if(r.error){console.error(r.error);amsg('ส่งอีเมลไม่สำเร็จ รอสักครู่แล้วลองอีกครั้ง');return}
-  $('codebox').hidden=false;
-  amsg('ส่งแล้ว ตรวจกล่องอีเมล (รวมจดหมายขยะ) ใส่รหัสด้านล่าง หรือกดลิงก์ในอีเมลก็ได้');
+  if(pw.length<6){amsg('รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร');return}
+  amsg('กำลังเข้าสู่ระบบ…');
+  var r=await sb.auth.signInWithPassword({email:em,password:pw});
+  if(r.error){console.error(r.error);amsg('อีเมลหรือรหัสผ่านไม่ถูกต้อง (หากยังไม่เคยสมัคร ให้กดปุ่มสมัครสมาชิกใหม่)');return}
+  if(r.data&&r.data.user&&!started){setUser(r.data.user);startApp()}
 };
-$('verify').onclick=async function(){
-  var em=$('em').value.trim(),code=$('cd').value.trim();
-  if(code.length<6){amsg('ใส่รหัสจากอีเมลให้ครบก่อน');return}
-  amsg('กำลังตรวจสอบ…');
-  var r=await sb.auth.verifyOtp({email:em,token:code,type:'email'});
-  if(r.error){console.error(r.error);amsg('รหัสไม่ถูกต้องหรือหมดอายุ ขอรหัสใหม่อีกครั้ง');return}
+$('signup').onclick=async function(){
+  var em=$('em').value.trim(),pw=$('pw').value;
+  if(!/^\S+@\S+\.\S+$/.test(em)){amsg('กรอกอีเมลให้ถูกต้องก่อน');return}
+  if(pw.length<6){amsg('ตั้งรหัสผ่านอย่างน้อย 6 ตัวอักษร');return}
+  amsg('กำลังสมัครสมาชิก…');
+  var r=await sb.auth.signUp({email:em,password:pw});
+  if(r.error){console.error(r.error);amsg('สมัครไม่สำเร็จ: '+r.error.message);return}
   if(r.data&&r.data.user&&!started){setUser(r.data.user);startApp()}
 };
 $('so').onclick=async function(){await sb.auth.signOut();location.reload()};

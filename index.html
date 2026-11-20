@@ -234,8 +234,7 @@ function num(x){return Math.round((+x||0)*100)/100}
 var now=new Date(),Y=now.getFullYear(),M=now.getMonth();
 var S={sa:50,name:'',sal:20000,dv:30,hd:8,mul:1.5};
 var months={},sel={},multi=false,cs=null;
-/* ตั้งค่าตรงนี้: วางค่าจาก Supabase (Project Settings > API) ถ้าเว้นว่างไว้ แอปจะทำงานโดยเก็บข้อมูลในเบราว์เซอร์ ไม่มีการล็อกอิน */
-var CONFIG={SUPABASE_URL:'',SUPABASE_ANON_KEY:''};
+var CONFIG={SUPABASE_URL:'https://rqkdgrnrafljrbdsaqeg.supabase.co',SUPABASE_ANON_KEY:'sb_publishable_EU6k2...'};
 var sb=null,uid=null,userEmail='',store='local',started=false;
 var dl={save:function(o){
   var url=URL.createObjectURL(o.data),a=document.createElement('a');

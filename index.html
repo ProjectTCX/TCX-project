@@ -1,0 +1,672 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>บันทึกกะงาน</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600&display=swap">
+<style>
+/* Layout: single-column phone-first app, calendar on top, editor below, month total with export at the end */
+:root{
+  --bg:#F2F4F7; --surface:#FFFFFF; --fg:#16202A; --muted:#5B6877; --line:#D9E0E7;
+  --accent:#1F5FBF; --accent-bg:#E4EDFB; --on-accent:#FFFFFF; --danger:#B3261E; --ok:#1E7A46;
+  --font:"Sarabun","Noto Sans Thai",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0E141A; --surface:#17202A; --fg:#E7ECF1; --muted:#97A4B1; --line:#2B3744;
+  --accent:#7FAAF2; --accent-bg:#1E2E47; --on-accent:#0E141A; --danger:#F2877F; --ok:#6CCB92; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E141A; --surface:#17202A; --fg:#E7ECF1; --muted:#97A4B1; --line:#2B3744;
+  --accent:#7FAAF2; --accent-bg:#1E2E47; --on-accent:#0E141A; --danger:#F2877F; --ok:#6CCB92; color-scheme:dark}
+
+[hidden]{display:none!important}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font);font-size:15px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 40px}
+.wrap{max-width:520px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+h1{font-size:20px;font-weight:600;margin:0}
+h2{font-size:15px;font-weight:600;margin:0}
+button,input{font-family:inherit;font-size:15px;color:var(--fg)}
+button{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:9px 12px;cursor:pointer;min-height:40px}
+button:hover{border-color:var(--muted)}
+button:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+input{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-height:40px}
+label{display:block;font-size:12.5px;color:var(--muted);margin-bottom:3px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px}
+.top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.status{font-size:12.5px;color:var(--muted)}
+.status.err{color:var(--danger)}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.nav .mt{font-weight:600;font-size:17px;text-align:center;flex:1}
+.nav button{width:44px;padding:0;font-size:18px}
+.tools{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:6px;margin:10px 0}
+.tools button{font-size:13.5px;padding:6px 4px}
+.tools button.on{background:var(--accent-bg);color:var(--accent);border-color:var(--accent)}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.dw{text-align:center;font-size:12px;color:var(--muted);padding:2px 0}
+.dw.su{color:var(--danger)}
+.cell{min-height:54px;padding:3px 0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1.2;border-radius:8px;background:var(--bg);color:var(--muted)}
+.cell .n{font-size:12px}
+.cell .c{font-size:13px;font-weight:600}
+.cell .o{font-size:10.5px;font-weight:500}
+.cell.today .n{text-decoration:underline;text-underline-offset:2px}
+.cell.sel{outline:2.5px solid var(--accent);outline-offset:-1px}
+.sM{background:#5BAF5B;color:#10300F}.sA{background:#F2B93B;color:#412402}.sN{background:#10245E;color:#fff}
+.sMA{background:#C5D9EE;color:#042C53}.sAN{background:#E070F5;color:#2A0A33}.sH{background:#E24B4A;color:#fff}
+.sPH,.sWOP,.sAL{background:var(--surface);color:var(--fg);border:1px solid var(--line)}
+.cell.shift{border:1px solid var(--line)}
+.chips{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.chip{display:flex;flex-direction:column;align-items:center;padding:6px 2px;border:1px solid var(--line);line-height:1.25}
+.chip b{font-size:15px;font-weight:600}
+.chip span{font-size:11px;font-weight:400}
+.chip.on{outline:2.5px solid var(--accent);outline-offset:-1px}
+.row{display:flex;gap:10px;align-items:flex-end}
+.row>.grow{flex:1;min-width:0}
+.info{font-size:13px;color:var(--muted);min-height:20px;margin:6px 0 8px}
+.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:500}
+.primary:hover{border-color:var(--accent);filter:brightness(1.06)}
+.otbox{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}
+.otbox div{background:var(--accent-bg);border-radius:8px;padding:8px 12px;line-height:1.3}
+.otbox small{display:block;font-size:12px;color:var(--accent)}
+.otbox b{font-size:20px;font-weight:600;color:var(--accent);font-variant-numeric:tabular-nums}
+.counts{display:grid;grid-template-columns:repeat(auto-fill,minmax(58px,1fr));gap:6px}
+.counts div{border:1px solid var(--line);border-radius:8px;padding:4px 8px;line-height:1.25}
+.counts small{display:block;font-size:11px}
+.counts b{font-size:16px;font-weight:600}
+.sum{margin-top:10px;display:flex;flex-direction:column;gap:2px}
+.sum .l{display:flex;justify-content:space-between;gap:10px;font-size:14px}
+.sum .l span:first-child{color:var(--muted)}
+.sum .t{display:flex;justify-content:space-between;align-items:baseline;gap:10px;border-top:1px solid var(--line);margin-top:8px;padding-top:10px}
+.sum .t span:first-child{font-weight:600}
+.sum .t span:last-child{font-size:24px;font-weight:600;color:var(--accent);font-variant-numeric:tabular-nums}
+.neg{color:var(--danger)}
+.note{font-size:12.5px;color:var(--muted);margin-top:6px}
+.legend{border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.legend div{display:flex;align-items:stretch}
+.legend div+div{border-top:1px solid var(--line)}
+.legend b{width:64px;display:flex;align-items:center;justify-content:center;font-weight:600;padding:7px 0}
+.legend span{padding:7px 12px;font-size:14px}
+.grid4{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+details summary{cursor:pointer;font-weight:600;font-size:15px}
+details[open] summary{margin-bottom:10px}
+.back{align-self:flex-start}
+.btns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}
+.msg{font-size:13px;color:var(--muted);min-height:20px;margin-top:8px}
+.tblwrap{overflow-x:auto}
+.stm table{width:100%;border-collapse:collapse;font-size:13.5px;font-variant-numeric:tabular-nums}
+.stm th{font-weight:400;color:var(--muted);text-align:left;padding:4px 4px 4px 0;font-size:12.5px}
+.stm td{padding:6px 4px 6px 0;border-top:1px solid var(--line);vertical-align:top}
+.stm .r{text-align:right;padding-right:0}
+.paper{position:absolute;left:-10000px;top:0;width:794px;background:#fff;color:#16202A;padding:44px 48px;font-family:var(--font)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap" id="auth" hidden>
+  <section class="card">
+    <h1 style="margin-bottom:6px">บันทึกกะงาน</h1>
+    <p class="note" style="margin:0 0 12px">ใส่อีเมลของคุณ ระบบจะส่งรหัสเข้าอีเมลเพื่อยืนยันว่าเป็นคุณ ใช้อีเมลเดิมทุกครั้ง ไม่ว่าเข้าจากเครื่องไหน ข้อมูลที่เคยบันทึกจะอยู่ครบ</p>
+    <label for="em">อีเมล</label>
+    <input id="em" type="email" autocomplete="email" inputmode="email" placeholder="name@example.com">
+    <button id="sendc" class="primary" style="width:100%;margin-top:10px">ส่งรหัสเข้าอีเมล</button>
+    <div id="codebox" hidden style="margin-top:14px">
+      <label for="cd">รหัสจากอีเมล</label>
+      <input id="cd" inputmode="numeric" autocomplete="one-time-code" placeholder="ใส่รหัสตัวเลขจากอีเมล">
+      <button id="verify" class="primary" style="width:100%;margin-top:10px">เข้าสู่ระบบ</button>
+    </div>
+    <div class="msg" id="amsg" role="status"></div>
+  </section>
+</div>
+
+<div class="wrap" id="main">
+  <div class="top">
+    <h1>บันทึกกะงาน</h1>
+    <span class="status" id="status">กำลังโหลด…</span>
+    <button id="so" hidden style="min-height:32px;padding:3px 10px;font-size:13px">ออกจากระบบ</button>
+  </div>
+
+  <section class="card" aria-label="ปฏิทินกะงาน">
+    <div class="nav">
+      <button id="prev" aria-label="เดือนก่อนหน้า">‹</button>
+      <div class="mt" id="mt">-</div>
+      <button id="next" aria-label="เดือนถัดไป">›</button>
+    </div>
+    <div class="tools">
+      <button id="mm" aria-pressed="false">เลือกหลายวัน</button>
+      <button id="all">ทั้งเดือน</button>
+      <button id="none">ยกเลิกเลือก</button>
+    </div>
+    <div class="cal" id="cal"></div>
+  </section>
+
+  <section class="card" aria-label="บันทึกกะ">
+    <h2 id="sel">เลือกวัน</h2>
+    <div class="info" id="sinfo"></div>
+    <div class="chips" id="chips"></div>
+    <div class="row" style="margin-top:12px">
+      <div class="grow">
+        <label for="oth">ทำล่วงเวลา (ชม.)</label>
+        <input type="number" id="oth" inputmode="decimal" step="0.5" min="0" value="0">
+      </div>
+      <button id="clr">ล้างวัน</button>
+      <button id="save" class="primary">บันทึก</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <details id="setd" open>
+      <summary>ตั้งค่าเงินเดือนและโอที</summary>
+      <div class="grid4">
+        <div style="grid-column:1/-1"><label for="nm">ชื่อพนักงาน (แสดงในสเตทเม้นต์)</label><input id="nm" type="text" placeholder="ชื่อ-นามสกุล"></div>
+        <div><label for="sal">เงินเดือน (บาท)</label><input id="sal" type="number" inputmode="decimal" min="0"></div>
+        <div><label for="dv">หารวัน (อัตโนมัติตามเดือน)</label><input id="dv" type="text" readonly aria-readonly="true"></div>
+        <div><label for="hd">ชั่วโมงต่อวัน</label><input id="hd" type="number" inputmode="decimal" min="1"></div>
+        <div><label for="mul">ตัวคูณโอที</label><input id="mul" type="number" inputmode="decimal" step="0.5" min="0"></div>
+        <div><label for="sa">ค่ากะ (บาท/กะ) เฉพาะ A, N, A/N</label><input id="sa" type="number" inputmode="decimal" min="0"></div>
+      </div>
+      <div class="note" id="rate"></div>
+    </details>
+  </section>
+
+  <section class="card" aria-label="สรุปเดือน">
+    <h2 id="stt">สรุปเดือน</h2>
+    <div class="otbox"><div><small>โอทีรวมเดือนนี้</small><b id="oth_t">0 ชม.</b></div><div><small>ค่ากะเดือนนี้</small><b id="al_t">0 กะ</b></div></div>
+    <div class="counts" id="cnt" style="margin-top:10px"></div>
+    <div class="sum">
+      <div class="l"><span>เงินเดือน</span><span id="b1">0</span></div>
+      <div class="l"><span id="b2l">หักลาไม่รับค่าจ้าง</span><span id="b2" class="neg">0</span></div>
+      <div class="l"><span id="b3l">ค่าโอที</span><span id="b3">0</span></div>
+      <div class="l"><span id="b4l">ค่ากะ</span><span id="b4">0</span></div>
+      <div class="t"><span>รวมที่จะได้เดือนนี้</span><span id="gt">0</span></div>
+    </div>
+    <div class="note">ยังไม่หักประกันสังคมและภาษี</div>
+    <button id="exp" class="primary" style="width:100%;margin-top:12px">ดูสเตทเม้นต์ / ส่งออก</button>
+  </section>
+
+  <section class="card" aria-label="คำอธิบายกะ">
+    <h2 style="margin-bottom:10px">คำอธิบายกะ</h2>
+    <div class="legend" id="legend"></div>
+  </section>
+
+</div>
+
+<div class="wrap stm" id="stv" hidden>
+  <button class="back" id="back">‹ กลับ</button>
+  <section class="card"><div id="stbody"></div>
+    <div class="btns">
+      <button id="xpdf">ดาวน์โหลด PDF</button>
+      <button id="xxls">ดาวน์โหลด Excel</button>
+    </div>
+    <div class="msg" id="exmsg" role="status"></div>
+  </section>
+</div>
+
+<div class="paper" id="paper" aria-hidden="true"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<script>
+(function(){
+var KEYS=['M','A','N','M/A','A/N','H','PH','WOP','A/L'];
+var CLS={M:'sM',A:'sA',N:'sN','M/A':'sMA','A/N':'sAN',H:'sH',PH:'sPH',WOP:'sWOP','A/L':'sAL'};
+var COL={M:['5BAF5B','10300F'],A:['F2B93B','412402'],N:['10245E','FFFFFF'],'M/A':['C5D9EE','042C53'],'A/N':['E070F5','2A0A33'],H:['E24B4A','FFFFFF'],PH:[null,'16202A'],WOP:[null,'16202A'],'A/L':[null,'16202A']};
+var DESC={M:'07:00-16:00',A:'15:00-24:00',N:'23:00-08:00','M/A':'07:00-24:00','A/N':'15:00-08:00',H:'วันหยุด',PH:'วันหยุดนักขัตฤกษ์',WOP:'ลาไม่รับค่าจ้าง','A/L':'ลาพักร้อน'};
+var TIMEONLY={M:1,A:1,N:1,'M/A':1,'A/N':1};
+var TH=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+var THS=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+var DW=['อา','จ','อ','พ','พฤ','ศ','ส'];
+var DWP=['อา.','จ.','อ.','พ.','พฤ.','ศ.','ส.'];
+
+function $(i){return document.getElementById(i)}
+function p2(n){return n<10?'0'+n:''+n}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function fmt(n){return Math.round(n).toLocaleString('en-US')}
+function fmt2(n){return (Math.round(n*100)/100).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function hasAllow(s){return s==='A'||s==='N'||s==='A/N'}
+function autoOt(s){return (s==='M/A'||s==='A/N')?7.5:0}
+function effOt(e){return autoOt(e.s)+(+e.o||0)}
+function hint(c){return c+' = '+DESC[c]+(autoOt(c)?' · นับโอที '+autoOt(c)+' ชม. อัตโนมัติ ช่องล่วงเวลาใส่เฉพาะที่ทำเพิ่ม':'')+(hasAllow(c)?' · ค่ากะ '+fmt(+S.sa||0)+' บาท':'')}
+function num(x){return Math.round((+x||0)*100)/100}
+
+var now=new Date(),Y=now.getFullYear(),M=now.getMonth();
+var S={sa:50,name:'',sal:20000,dv:30,hd:8,mul:1.5};
+var months={},sel={},multi=false,cs=null;
+/* ตั้งค่าตรงนี้: วางค่าจาก Supabase (Project Settings > API) ถ้าเว้นว่างไว้ แอปจะทำงานโดยเก็บข้อมูลในเบราว์เซอร์ ไม่มีการล็อกอิน */
+var CONFIG={SUPABASE_URL:'',SUPABASE_ANON_KEY:''};
+var sb=null,uid=null,userEmail='',store='local',started=false;
+var dl={save:function(o){
+  var url=URL.createObjectURL(o.data),a=document.createElement('a');
+  a.href=url;a.download=o.filename;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(function(){URL.revokeObjectURL(url)},5000);return Promise.resolve();
+}};
+
+function mkey(y,m){return (y===undefined?Y:y)+'-'+p2((m===undefined?M:m)+1)}
+function setStatus(t,err){var e=$('status');e.textContent=t;e.className='status'+(err?' err':'')}
+
+/* ---------- storage ---------- */
+function setUser(u){uid=u.id;userEmail=u.email||'';store='db'}
+var readyP=(async function(){
+  try{
+    if(CONFIG.SUPABASE_URL&&CONFIG.SUPABASE_ANON_KEY&&window.supabase){
+      sb=window.supabase.createClient(CONFIG.SUPABASE_URL,CONFIG.SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+      var r=await sb.auth.getSession();
+      if(r&&r.data&&r.data.session)setUser(r.data.session.user);
+      sb.auth.onAuthStateChange(function(ev,session){
+        if(ev==='SIGNED_IN'&&session&&!started){setUser(session.user);startApp()}
+      });
+    }
+  }catch(e){console.error(e)}
+})();
+async function loadSettings(){
+  try{
+    var raw=null;
+    if(store==='db'){
+      var r=await sb.from('shift_settings').select('data').eq('user_id',uid).maybeSingle();
+      if(r.error)throw r.error;
+      if(r.data)raw=r.data.data;
+    }else{var t=localStorage.getItem('shift-settings');if(t)raw=JSON.parse(t)}
+    if(raw)['name','sal','hd','mul','sa'].forEach(function(k){if(raw[k]!==undefined)S[k]=raw[k]});
+  }catch(e){setStatus('โหลดการตั้งค่าไม่ได้',true)}
+}
+async function loadMonth(key){
+  if(months[key])return;
+  var d={};
+  try{
+    if(store==='db'){
+      var r=await sb.from('shift_months').select('data').eq('user_id',uid).eq('month',key).maybeSingle();
+      if(r.error)throw r.error;
+      if(r.data)d=r.data.data||{};
+    }else{var t=localStorage.getItem('shift-m-'+key);if(t)d=JSON.parse(t)}
+  }catch(e){setStatus('โหลดข้อมูลเดือนนี้ไม่ได้',true)}
+  months[key]={d:d};
+}
+var chain=Promise.resolve();
+function persist(fn){
+  chain=chain.then(async function(){
+    setStatus('กำลังบันทึก…');
+    await fn();
+    setStatus(store==='db'?'บันทึกแล้ว':'บันทึกในเบราว์เซอร์นี้');
+  }).catch(function(){setStatus('บันทึกไม่สำเร็จ ลองอีกครั้ง',true)});
+  return chain;
+}
+function saveMonth(key){
+  var body={d:JSON.parse(JSON.stringify(months[key].d))};
+  return persist(async function(){
+    if(store==='db'){
+      var r=await sb.from('shift_months').upsert({user_id:uid,month:key,data:body.d,updated_at:new Date().toISOString()});
+      if(r.error)throw r.error;
+    }else localStorage.setItem('shift-m-'+key,JSON.stringify(body.d));
+  });
+}
+var sTimer=null;
+function saveSettingsSoon(){
+  clearTimeout(sTimer);
+  sTimer=setTimeout(function(){
+    var body={name:S.name,sal:S.sal,hd:S.hd,mul:S.mul,sa:S.sa};
+    persist(async function(){
+      if(store==='db'){
+        var r=await sb.from('shift_settings').upsert({user_id:uid,data:body,updated_at:new Date().toISOString()});
+        if(r.error)throw r.error;
+      }else localStorage.setItem('shift-settings',JSON.stringify(body));
+    });
+  },700);
+}
+
+/* ---------- calculation ---------- */
+function calc(y,m){
+  var key=mkey(y,m),d=(months[key]||{d:{}}).d;
+  var n=new Date(y,m+1,0).getDate(),dv=n,hd=+S.hd||8,mul=(+S.mul===0||S.mul)?+S.mul:1.5,sal=+S.sal||0,sa=+S.sa||0;
+  var hr=sal/dv/hd;
+  var c={},rows=[],ot=0;
+  KEYS.forEach(function(x){c[x]=0});
+  for(var i=1;i<=n;i++){
+    var e=d[i];if(!e||!c.hasOwnProperty(e.s))continue;
+    var eo=effOt(e);
+    c[e.s]++;ot+=eo;
+    var amt=e.s==='WOP'?-(sal/dv):eo*hr*mul+(hasAllow(e.s)?sa:0);
+    rows.push({day:i,dow:new Date(y,m,i).getDay(),s:e.s,o:eo,amt:amt});
+  }
+  var pay=hr*mul*ot,ded=sal/dv*c.WOP,ad=c.A+c.N+c['A/N'],allow=ad*sa;
+  var otDays=rows.filter(function(r){return r.o>0}).length;
+  return {sa:sa,ad:ad,allow:allow,otDays:otDays,y:y,m:m,sal:sal,dv:dv,hd:hd,mul:mul,hr:hr,c:c,rows:rows,ot:ot,pay:pay,ded:ded,tot:sal-ded+pay+allow,n:n};
+}
+
+/* ---------- main view ---------- */
+function cnt(){return Object.keys(sel).length}
+function label(){
+  var n=cnt();
+  if(multi)$('sel').textContent=n?('เลือกแล้ว '+n+' วัน'):'แตะวันในปฏิทินเพื่อเลือกหลายวัน';
+  else $('sel').textContent=n?('วันที่ '+Object.keys(sel)[0]+' '+TH[M]):'เลือกวัน';
+  $('save').textContent=(multi&&n>1)?('บันทึก '+n+' วัน'):'บันทึก';
+  $('clr').textContent=(multi&&n>1)?('ล้าง '+n+' วัน'):'ล้างวัน';
+  var b=$('mm');b.className=multi?'on':'';b.setAttribute('aria-pressed',multi?'true':'false');
+}
+function renderCal(){
+  $('mt').textContent=TH[M]+' '+(Y+543);
+  var key=mkey(),d=(months[key]||{d:{}}).d;
+  var first=new Date(Y,M,1).getDay(),n=new Date(Y,M+1,0).getDate(),h='';
+  DW.forEach(function(w,i){h+='<div class="dw'+(i===0?' su':'')+'">'+w+'</div>'});
+  for(var i=0;i<first;i++)h+='<div></div>';
+  var isNow=(Y===now.getFullYear()&&M===now.getMonth());
+  for(var k=1;k<=n;k++){
+    var e=d[k],on=!!sel[k];
+    var cls='cell'+(e&&CLS[e.s]?' shift '+CLS[e.s]:'')+(on?' sel':'')+(isNow&&k===now.getDate()?' today':'');
+    var aria=k+' '+TH[M]+(e?' กะ '+e.s+(effOt(e)>0?' โอที '+effOt(e)+' ชั่วโมง':''):' ยังไม่บันทึก');
+    h+='<button type="button" class="'+cls+'" data-d="'+k+'" aria-pressed="'+(on?'true':'false')+'" aria-label="'+aria+'"><span class="n">'+k+'</span><span class="c">'+(e?esc(e.s):'&nbsp;')+'</span>'+(e&&effOt(e)>0?'<span class="o">OT '+effOt(e)+'</span>':'')+'</button>';
+  }
+  $('cal').innerHTML=h;
+  label();renderSummary();
+}
+function renderChips(){
+  var h='';
+  KEYS.forEach(function(x){
+    h+='<button type="button" class="chip '+CLS[x]+(x===cs?' on':'')+'" data-k="'+x+'"><b>'+x+'</b><span>'+(TIMEONLY[x]?DESC[x]:DESC[x])+'</span></button>';
+  });
+  $('chips').innerHTML=h;
+}
+function renderLegend(){
+  var h='';
+  KEYS.forEach(function(x){h+='<div><b class="'+CLS[x]+'">'+x+'</b><span>'+DESC[x]+'</span></div>'});
+  $('legend').innerHTML=h;
+}
+function renderSummary(){
+  var v=calc(Y,M),h='';
+  KEYS.forEach(function(x){h+='<div class="'+CLS[x]+'"><small>'+x+'</small><b>'+v.c[x]+'</b></div>'});
+  $('cnt').innerHTML=h;
+  $('stt').textContent='สรุปเดือน '+TH[M]+' '+(Y+543);
+  $('oth_t').textContent=num(v.ot)+' ชม.';
+  $('dv').value=v.dv+' วัน';
+  $('b1').textContent=fmt(v.sal);
+  $('b2l').textContent='หักลาไม่รับค่าจ้าง ('+v.c.WOP+' วัน)';
+  $('b2').textContent=v.ded>0?'-'+fmt(v.ded):'0';
+  $('b3l').textContent='ค่าโอที ('+num(v.ot)+' ชม. x '+fmt2(v.hr*v.mul)+')';
+  $('b3').textContent='+'+fmt(v.pay);
+  $('b4l').textContent='ค่ากะ ('+v.ad+' กะ x '+fmt(v.sa)+')';
+  $('b4').textContent='+'+fmt(v.allow);
+  $('al_t').textContent=v.ad+' กะ · '+fmt(v.allow)+' บาท';
+  $('gt').textContent=fmt(v.tot)+' บาท';
+  $('rate').textContent='ค่าแรง '+fmt2(v.hr)+' บาท/ชม. · โอที '+fmt2(v.hr*v.mul)+' บาท/ชม.';
+}
+function choose(d){
+  if(multi){
+    if(sel[d])delete sel[d];else sel[d]=1;
+    $('sinfo').textContent=cnt()?'เลือกกะแล้วกดบันทึกครั้งเดียว':'';
+    renderCal();return;
+  }
+  sel={};sel[d]=1;
+  var e=((months[mkey()]||{d:{}}).d)[d];
+  cs=e?e.s:null;$('oth').value=e?e.o:0;
+  $('sinfo').textContent=cs?hint(cs):'เลือกกะของวันนี้';
+  renderChips();renderCal();
+}
+async function save(){
+  var n=cnt();
+  if(!n){$('sinfo').textContent='เลือกวันในปฏิทินก่อน';return}
+  if(!cs){$('sinfo').textContent='เลือกกะก่อนบันทึก';return}
+  await readyP;
+  var key=mkey();await loadMonth(key);
+  var o=Math.max(0,+$('oth').value||0);
+  Object.keys(sel).forEach(function(d){months[key].d[d]={s:cs,o:o}});
+  $('sinfo').textContent='บันทึก '+n+' วันแล้ว';
+  if(multi)sel={};
+  renderCal();
+  saveMonth(key);
+}
+async function clearDays(){
+  var n=cnt();
+  if(!n){$('sinfo').textContent='แตะเลือกวันในปฏิทินที่ต้องการล้างก่อน';return}
+  await readyP;
+  var key=mkey();await loadMonth(key);
+  var has=Object.keys(sel).filter(function(d){return months[key].d[d]});
+  if(!has.length){$('sinfo').textContent='วันที่เลือกยังไม่มีข้อมูลให้ล้าง';return}
+  n=has.length;
+  has.forEach(function(d){delete months[key].d[d]});
+  if(!multi){cs=null;$('oth').value=0;renderChips()}
+  $('sinfo').textContent='ล้าง '+n+' วันแล้ว';
+  if(multi)sel={};
+  renderCal();
+  saveMonth(key);
+}
+async function go(delta){
+  M+=delta;if(M<0){M=11;Y--}if(M>11){M=0;Y++}
+  sel={};cs=null;$('sinfo').textContent='';
+  renderChips();renderCal();
+  await readyP;await loadMonth(mkey());renderCal();
+}
+
+/* ---------- statement ---------- */
+var SCREEN={fg:'var(--fg)',muted:'var(--muted)',line:'var(--line)',surface:'var(--surface)',accent:'var(--accent)',danger:'var(--danger)'};
+var PAPER={fg:'#16202A',muted:'#5B6877',line:'#D9E0E7',surface:'#FFFFFF',accent:'#1F5FBF',danger:'#B3261E'};
+function chip(code,C){
+  var c=COL[code],bg=c[0]?'#'+c[0]:C.surface,fg=c[0]?'#'+c[1]:C.fg;
+  return '<span style="display:inline-block;min-width:38px;text-align:center;padding:1px 6px;border-radius:5px;font-weight:600;background:'+bg+';color:'+fg+';border:1px solid '+C.line+'">'+esc(code)+'</span>';
+}
+function stmtHTML(v,C){
+  var h='<div style="color:'+C.fg+'">';
+  h+='<div style="font-size:12.5px;color:'+C.muted+'">สเตทเม้นต์ประจำเดือน</div>';
+  h+='<div style="font-size:22px;font-weight:600;line-height:1.3">'+TH[v.m]+' '+(v.y+543)+'</div>';
+  h+='<div style="font-size:13.5px;color:'+C.muted+';margin:2px 0 14px">พนักงาน: '+esc(S.name||'-')+'</div>';
+  h+='<div style="border:1px solid '+C.line+';border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:14px">';
+  h+='<div style="display:flex;justify-content:space-between;padding:2px 0"><span style="color:'+C.muted+'">เงินเดือน</span><span>'+fmt(v.sal)+'</span></div>';
+  h+='<div style="display:flex;justify-content:space-between;padding:2px 0"><span style="color:'+C.muted+'">หักลาไม่รับค่าจ้าง ('+v.c.WOP+' วัน)</span><span style="color:'+C.danger+'">'+(v.ded>0?'-'+fmt(v.ded):'0')+'</span></div>';
+  h+='<div style="display:flex;justify-content:space-between;padding:2px 0"><span style="color:'+C.muted+'">ชั่วโมงโอทีรวม</span><span>'+num(v.ot)+' ชม.</span></div>';
+  h+='<div style="display:flex;justify-content:space-between;padding:2px 0"><span style="color:'+C.muted+'">ค่าโอที ('+num(v.ot)+' ชม. x '+fmt2(v.hr*v.mul)+')</span><span>+'+fmt(v.pay)+'</span></div>';
+  h+='<div style="display:flex;justify-content:space-between;padding:2px 0"><span style="color:'+C.muted+'">ค่ากะ ('+v.ad+' กะ x '+fmt(v.sa)+')</span><span>+'+fmt(v.allow)+'</span></div>';
+  h+='<div style="display:flex;justify-content:space-between;align-items:baseline;border-top:1px solid '+C.line+';margin-top:8px;padding-top:10px"><span style="font-weight:600">รวมที่ได้รับ</span><span style="font-size:22px;font-weight:600;color:'+C.accent+'">'+fmt(v.tot)+' บาท</span></div>';
+  h+='<div style="font-size:12px;color:'+C.muted+';margin-top:4px;text-align:right">ยังไม่หักประกันสังคมและภาษี</div></div>';
+  h+='<div style="font-size:13px;color:'+C.muted+';margin-bottom:6px">จำนวนวันตามกะ</div>';
+  h+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:6px;margin-bottom:16px">';
+  KEYS.forEach(function(x){h+='<div style="border:1px solid '+C.line+';border-radius:8px;padding:4px 8px;line-height:1.3"><div style="font-size:11px;color:'+C.muted+'">'+x+'</div><div style="font-size:16px;font-weight:600">'+v.c[x]+'</div></div>'});
+  h+='</div>';
+  h+='<div style="font-size:13px;color:'+C.muted+';margin-bottom:6px">รายละเอียดรายวัน</div>';
+  h+='<table style="width:100%;border-collapse:collapse;font-size:13.5px"><tr style="color:'+C.muted+';font-size:12.5px;text-align:left"><th style="font-weight:400;padding:4px 4px 4px 0;text-align:left">วันที่</th><th style="font-weight:400;text-align:left">กะ</th><th style="font-weight:400;text-align:left">เวลา / หมายเหตุ</th><th style="font-weight:400;text-align:right">โอที</th><th style="font-weight:400;text-align:right">บาท</th></tr>';
+  if(!v.rows.length)h+='<tr><td colspan="5" style="padding:10px 0;color:'+C.muted+';border-top:1px solid '+C.line+'">ยังไม่มีข้อมูลในเดือนนี้</td></tr>';
+  v.rows.forEach(function(r){
+    var a=r.s==='WOP'?'<span style="color:'+C.danger+'">-'+fmt(-r.amt)+'</span>':(r.amt!==0?fmt(r.amt):'-');
+    h+='<tr><td style="padding:6px 4px 6px 0;border-top:1px solid '+C.line+'">'+DWP[r.dow]+' '+r.day+'</td><td style="border-top:1px solid '+C.line+'">'+chip(r.s,C)+'</td><td style="border-top:1px solid '+C.line+'">'+DESC[r.s]+'</td><td style="text-align:right;border-top:1px solid '+C.line+'">'+(r.o>0?num(r.o):'-')+'</td><td style="text-align:right;border-top:1px solid '+C.line+'">'+a+'</td></tr>';
+  });
+  h+='</table>';
+  h+='<div style="font-size:12px;color:'+C.muted+';margin-top:12px">เงินเดือน '+fmt(v.sal)+' บาท หาร '+v.dv+' วัน หาร '+v.hd+' ชม. โอทีคูณ '+v.mul+' ค่ากะ '+fmt(v.sa)+' บาท/กะ</div>';
+  return h+'</div>';
+}
+function showStatement(){
+  $('stbody').innerHTML=stmtHTML(calc(Y,M),SCREEN);
+  $('exmsg').textContent='';
+}
+function route(){
+  if(sb&&!uid)return;
+  var st=location.hash==='#statement';
+  $('main').hidden=st;$('stv').hidden=!st;
+  if(st)showStatement();
+  window.scrollTo(0,0);
+}
+
+/* ---------- export ---------- */
+async function makePdf(v){
+  var el=$('paper');
+  el.innerHTML=stmtHTML(v,PAPER);
+  try{await document.fonts.ready}catch(e){}
+  var canvas=await html2canvas(el,{scale:2,backgroundColor:'#ffffff',useCORS:true});
+  el.innerHTML='';
+  var pdf=new window.jspdf.jsPDF({unit:'mm',format:'a4'});
+  var pw=210,ph=297,pxmm=canvas.width/pw,pageH=Math.floor(ph*pxmm),y=0,page=0;
+  while(y<canvas.height){
+    var h=Math.min(pageH,canvas.height-y),c=document.createElement('canvas');
+    c.width=canvas.width;c.height=h;
+    var ctx=c.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,h);
+    ctx.drawImage(canvas,0,y,canvas.width,h,0,0,canvas.width,h);
+    if(page>0)pdf.addPage();
+    pdf.addImage(c.toDataURL('image/jpeg',0.92),'JPEG',0,0,pw,h/pxmm);
+    y+=h;page++;
+  }
+  return pdf.output('blob');
+}
+async function makeXlsx(v){
+  var FN='Tahoma',wb=new ExcelJS.Workbook();
+  var ws=wb.addWorksheet('Statement',{views:[{showGridLines:false}],pageSetup:{paperSize:9,fitToPage:true,fitToWidth:1,fitToHeight:0}});
+  [28,14,26,12,15,15,15].forEach(function(w,i){ws.getColumn(i+1).width=w});
+  var thin={style:'thin',color:{argb:'FFBFBFBF'}},box={top:thin,bottom:thin,left:thin,right:thin};
+  function put(addr,val,o){
+    o=o||{};var c=ws.getCell(addr);
+    c.value=val;
+    c.font={name:FN,size:o.size||11,bold:!!o.bold,color:{argb:'FF'+(o.color||'000000')}};
+    if(o.fmt)c.numFmt=o.fmt;
+    if(o.fill)c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+o.fill}};
+    if(o.box)c.border=box;
+    if(o.align)c.alignment={horizontal:o.align,wrapText:true};
+    return c;
+  }
+  put('A1','สเตทเม้นต์ประจำเดือน',{size:16,bold:true});
+  put('A2',TH[v.m]+' '+(v.y+543),{size:13,bold:true});
+  put('A3','พนักงาน: '+(S.name||'-'),{color:'595959'});
+  put('A5','ตั้งค่าการคำนวณ',{size:12,bold:true});
+  var inp=[['เงินเดือน (บาท)',v.sal,'#,##0'],['หารวัน',v.dv,'0'],['ชั่วโมงทำงาน/วัน',v.hd,'0'],['ตัวคูณโอที',v.mul,'0.0#']];
+  inp.forEach(function(r,i){var n=6+i;put('A'+n,r[0],{box:true});put('B'+n,r[1],{color:'0000FF',fmt:r[2],box:true,align:'right'})});
+  put('A10','ค่าแรงต่อชั่วโมง (บาท)',{box:true});put('B10',{formula:'B6/B7/B8',result:v.hr},{fmt:'#,##0.00',box:true,align:'right'});
+  put('A11','ค่าโอทีต่อชั่วโมง (บาท)',{box:true});put('B11',{formula:'B10*B9',result:v.hr*v.mul},{fmt:'#,##0.00',box:true,align:'right'});
+  put('A12','ค่ากะ (บาท/กะ)',{box:true});put('B12',v.sa,{color:'0000FF',fmt:'#,##0',box:true,align:'right'});
+  put('C6','ช่องสีน้ำเงินแก้ไขได้ ตัวเลขอื่นคำนวณอัตโนมัติ',{size:9,color:'7F7F7F'});
+
+  var r0=34,nrows=Math.max(v.rows.length,1),rEnd=r0+nrows-1,tr=r0+nrows;
+  put('A13','สรุปยอด',{size:12,bold:true});
+  var money='#,##0;-#,##0;0';
+  put('A14','เงินเดือน',{box:true});put('B14',{formula:'B6',result:v.sal},{fmt:money,box:true,align:'right'});
+  put('A15','หักลาไม่รับค่าจ้าง',{box:true});put('B15',{formula:'-F'+tr,result:-v.ded},{fmt:money,color:'C00000',box:true,align:'right'});
+  put('A16','ค่าโอที',{box:true});put('B16',{formula:'E'+tr,result:v.pay},{fmt:money,box:true,align:'right'});
+  put('A17','ค่ากะ',{box:true});put('B17',{formula:'G'+tr,result:v.allow},{fmt:money,box:true,align:'right'});
+  put('A18','รวมที่ได้รับ (บาท)',{bold:true,size:12,fill:'E6F1FB',box:true});
+  put('B18',{formula:'B14+B15+B16+B17',result:v.tot},{bold:true,size:12,fmt:money,fill:'E6F1FB',box:true,align:'right'});
+  put('C18','ยังไม่หักประกันสังคมและภาษี',{size:9,color:'7F7F7F'});
+
+  put('A20','จำนวนวันตามกะ',{size:12,bold:true});
+  ['กะ','จำนวนวัน','เวลา / ความหมาย'].forEach(function(t,i){put(String.fromCharCode(65+i)+'21',t,{bold:true,fill:'EDEDED',box:true,align:'center'})});
+  KEYS.forEach(function(x,i){
+    var r=22+i,c=COL[x];
+    put('A'+r,x,{bold:true,color:c[1],fill:c[0]||undefined,box:true,align:'center'});
+    put('B'+r,{formula:'COUNTIF($B$'+r0+':$B$'+rEnd+',A'+r+')',result:v.c[x]},{box:true,align:'center'});
+    put('C'+r,DESC[x],{box:true});
+  });
+
+  put('A32','รายละเอียดรายวัน',{size:12,bold:true});
+  ['วันที่','กะ','เวลา / หมายเหตุ','โอที (ชม.)','ค่าโอที (บาท)','หักเงิน (บาท)','ค่ากะ (บาท)'].forEach(function(t,i){put(String.fromCharCode(65+i)+'33',t,{bold:true,fill:'EDEDED',box:true,align:'center'})});
+  var dm='#,##0;-#,##0;"-"';
+  if(!v.rows.length){for(var q=1;q<=7;q++)ws.getCell(r0,q).border=box}
+  v.rows.forEach(function(r,i){
+    var n=r0+i,c=COL[r.s];
+    put('A'+n,DWP[r.dow]+' '+r.day+' '+THS[v.m],{box:true});
+    put('B'+n,r.s,{bold:true,color:c[1],fill:c[0]||undefined,box:true,align:'center'});
+    put('C'+n,DESC[r.s],{box:true});
+    put('D'+n,r.o>0?r.o:null,{color:'0000FF',fmt:'0.0',box:true,align:'right'});
+    put('E'+n,{formula:'D'+n+'*$B$11',result:r.o*v.hr*v.mul},{fmt:dm,box:true,align:'right'});
+    put('F'+n,{formula:'IF(B'+n+'="WOP",$B$6/$B$7,0)',result:r.s==='WOP'?v.sal/v.dv:0},{fmt:dm,box:true,align:'right'});
+    put('G'+n,{formula:'IF(OR(B'+n+'="A",B'+n+'="N",B'+n+'="A/N"),$B$12,0)',result:hasAllow(r.s)?v.sa:0},{fmt:dm,box:true,align:'right'});
+  });
+  put('A'+tr,'รวม',{bold:true,fill:'EDEDED',box:true});
+  put('B'+tr,null,{fill:'EDEDED',box:true});put('C'+tr,null,{fill:'EDEDED',box:true});
+  put('D'+tr,{formula:'SUM(D'+r0+':D'+rEnd+')',result:v.ot},{bold:true,fmt:'0.0',fill:'EDEDED',box:true,align:'right'});
+  put('E'+tr,{formula:'SUM(E'+r0+':E'+rEnd+')',result:v.pay},{bold:true,fmt:dm,fill:'EDEDED',box:true,align:'right'});
+  put('F'+tr,{formula:'SUM(F'+r0+':F'+rEnd+')',result:v.ded},{bold:true,fmt:dm,fill:'EDEDED',box:true,align:'right'});
+  put('G'+tr,{formula:'SUM(G'+r0+':G'+rEnd+')',result:v.allow},{bold:true,fmt:dm,fill:'EDEDED',box:true,align:'right'});
+  var buf=await wb.xlsx.writeBuffer();
+  return new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+}
+var busy=false;
+async function doExport(kind){
+  if(busy)return;
+  var msg=$('exmsg');
+  if(!dl){msg.textContent='ดาวน์โหลดไฟล์ไม่ได้ในเบราว์เซอร์นี้';return}
+  busy=true;msg.textContent='กำลังสร้างไฟล์…';
+  try{
+    var v=calc(Y,M),name='statement_'+mkey()+(kind==='pdf'?'.pdf':'.xlsx');
+    var blob=kind==='pdf'?await makePdf(v):await makeXlsx(v);
+    await dl.save({filename:name,data:blob});
+    msg.textContent='ดาวน์โหลด '+name+' แล้ว';
+  }catch(e){
+    msg.textContent=(e&&e.code==='declined')?'ยกเลิกการดาวน์โหลด':'สร้างไฟล์ไม่สำเร็จ ลองอีกครั้ง';
+  }
+  busy=false;
+}
+
+/* ---------- wiring ---------- */
+$('cal').addEventListener('click',function(ev){var b=ev.target.closest('button[data-d]');if(b)choose(+b.getAttribute('data-d'))});
+$('chips').addEventListener('click',function(ev){
+  var b=ev.target.closest('button[data-k]');if(!b)return;
+  cs=b.getAttribute('data-k');renderChips();$('sinfo').textContent=hint(cs);
+});
+$('mm').onclick=function(){
+  multi=!multi;
+  if(!multi){var ks=Object.keys(sel);sel={};if(ks.length)sel[ks[0]]=1}
+  $('sinfo').textContent=multi?'โหมดเลือกหลายวัน: แตะวันที่ต้องการ แล้วเลือกกะ':'';
+  renderCal();
+};
+$('all').onclick=function(){
+  multi=true;sel={};var n=new Date(Y,M+1,0).getDate();
+  for(var d=1;d<=n;d++)sel[d]=1;
+  $('sinfo').textContent='เลือกกะแล้วกดบันทึกครั้งเดียว';renderCal();
+};
+$('none').onclick=function(){sel={};$('sinfo').textContent='';renderCal()};
+$('save').onclick=save;
+$('clr').onclick=clearDays;
+$('prev').onclick=function(){go(-1)};
+$('next').onclick=function(){go(1)};
+['name:nm','sa:sa','sal:sal','hd:hd','mul:mul'].forEach(function(pair){
+  var a=pair.split(':'),k=a[0],el=$(a[1]);
+  el.addEventListener('input',function(){
+    S[k]=(k==='name')?el.value:(el.value===''?'':+el.value);
+    renderSummary();saveSettingsSoon();
+  });
+});
+$('exp').onclick=function(){location.hash='statement'};
+$('back').onclick=function(){location.hash=''};
+$('xpdf').onclick=function(){doExport('pdf')};
+$('xxls').onclick=function(){doExport('xlsx')};
+window.addEventListener('hashchange',route);
+
+function fillSettings(){$('nm').value=S.name;$('sal').value=S.sal;$('hd').value=S.hd;$('mul').value=S.mul;$('sa').value=S.sa}
+
+async function startApp(){
+  if(started)return;started=true;
+  $('auth').hidden=true;
+  if(store==='db'){$('so').hidden=false}
+  route();
+  await loadSettings();fillSettings();
+  await loadMonth(mkey());
+  choose(now.getDate());
+  setStatus(store==='db'?('บันทึกอัตโนมัติ · '+userEmail):'บันทึกในเบราว์เซอร์นี้');
+  if(location.hash==='#statement')showStatement();
+}
+function amsg(t){$('amsg').textContent=t}
+function showAuth(){$('main').hidden=true;$('stv').hidden=true;$('auth').hidden=false}
+$('sendc').onclick=async function(){
+  var em=$('em').value.trim();
+  if(!/^\S+@\S+\.\S+$/.test(em)){amsg('กรอกอีเมลให้ถูกต้องก่อน');return}
+  amsg('กำลังส่ง…');
+  var r=await sb.auth.signInWithOtp({email:em,options:{shouldCreateUser:true,emailRedirectTo:location.origin+location.pathname}});
+  if(r.error){console.error(r.error);amsg('ส่งอีเมลไม่สำเร็จ รอสักครู่แล้วลองอีกครั้ง');return}
+  $('codebox').hidden=false;
+  amsg('ส่งแล้ว ตรวจกล่องอีเมล (รวมจดหมายขยะ) ใส่รหัสด้านล่าง หรือกดลิงก์ในอีเมลก็ได้');
+};
+$('verify').onclick=async function(){
+  var em=$('em').value.trim(),code=$('cd').value.trim();
+  if(code.length<6){amsg('ใส่รหัสจากอีเมลให้ครบก่อน');return}
+  amsg('กำลังตรวจสอบ…');
+  var r=await sb.auth.verifyOtp({email:em,token:code,type:'email'});
+  if(r.error){console.error(r.error);amsg('รหัสไม่ถูกต้องหรือหมดอายุ ขอรหัสใหม่อีกครั้ง');return}
+  if(r.data&&r.data.user&&!started){setUser(r.data.user);startApp()}
+};
+$('so').onclick=async function(){await sb.auth.signOut();location.reload()};
+
+renderLegend();renderChips();fillSettings();renderCal();
+if(!CONFIG.SUPABASE_URL)route();
+(async function(){
+  await readyP;
+  if(sb&&!uid){showAuth();return}
+  await startApp();
+})();
+})();
+</script>
+</body>
+</html>

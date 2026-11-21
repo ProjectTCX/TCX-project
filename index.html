@@ -32,7 +32,7 @@ button,input{font-family:inherit;font-size:15px;color:var(--fg)}
 button{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:9px 12px;cursor:pointer;min-height:40px}
 button:hover{border-color:var(--muted)}
 button:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-input{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-height:40px}
+input[type="text"],input[type="email"],input[type="password"],input[type="number"]{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-height:40px}
 label{display:block;font-size:12.5px;color:var(--muted);margin-bottom:3px}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px}
 .top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
@@ -94,6 +94,12 @@ details[open] summary{margin-bottom:10px}
 .back{align-self:flex-start}
 .btns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}
 .msg{font-size:13px;color:var(--muted);min-height:20px;margin-top:8px}
+.msg.ok{color:var(--ok)}.msg.err{color:var(--danger)}
+.auth-opts{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap}
+.chk{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;color:var(--fg);cursor:pointer;margin:0}
+.chk input{width:17px;height:17px;margin:0;accent-color:var(--accent);cursor:pointer}
+.linkbtn{background:none;border:none;padding:4px 0;min-height:auto;color:var(--accent);font-size:13.5px;text-decoration:underline;text-underline-offset:3px}
+.linkbtn:hover{border:none;opacity:.8}
 .tblwrap{overflow-x:auto}
 .stm table{width:100%;border-collapse:collapse;font-size:13.5px;font-variant-numeric:tabular-nums}
 .stm th{font-weight:400;color:var(--muted);text-align:left;padding:4px 4px 4px 0;font-size:12.5px}
@@ -109,15 +115,34 @@ details[open] summary{margin-bottom:10px}
   <section class="card">
     <h1 style="margin-bottom:6px">บันทึกกะงาน</h1>
     <p class="note" style="margin:0 0 12px">เข้าสู่ระบบหรือสมัครสมาชิกด้วยอีเมลและรหัสผ่าน (ตั้งรหัสผ่านอย่างน้อย 6 ตัวอักษร) ใช้อีเมลเดิมทุกครั้ง ข้อมูลที่เคยบันทึกจะอยู่ครบ</p>
-    <label for="em">อีเมล</label>
-    <input id="em" type="email" autocomplete="email" inputmode="email" placeholder="name@example.com">
-    <label for="pw" style="margin-top:10px">รหัสผ่าน</label>
-    <input id="pw" type="password" autocomplete="current-password" placeholder="อย่างน้อย 6 ตัวอักษร">
-    <div class="btns" style="margin-top:12px">
-      <button id="login" class="primary">เข้าสู่ระบบ</button>
-      <button id="signup">สมัครสมาชิกใหม่</button>
-    </div>
+    <form id="authform" autocomplete="on">
+      <label for="em">อีเมล</label>
+      <input id="em" name="email" type="email" autocomplete="username" inputmode="email" placeholder="name@example.com">
+      <label for="pw" style="margin-top:10px">รหัสผ่าน</label>
+      <input id="pw" name="password" type="password" autocomplete="current-password" placeholder="อย่างน้อย 6 ตัวอักษร">
+      <div class="auth-opts">
+        <label class="chk"><input type="checkbox" id="rem" checked> จำอีเมลและรหัสผ่านไว้ในเครื่องนี้</label>
+        <button type="button" id="forgot" class="linkbtn">ลืมรหัสผ่าน?</button>
+      </div>
+      <div class="btns" style="margin-top:12px">
+        <button type="submit" id="login" class="primary">เข้าสู่ระบบ</button>
+        <button type="button" id="signup">สมัครสมาชิกใหม่</button>
+      </div>
+    </form>
     <div class="msg" id="amsg" role="status"></div>
+  </section>
+</div>
+
+<div class="wrap" id="resetv" hidden>
+  <section class="card">
+    <h1 style="margin-bottom:6px">ตั้งรหัสผ่านใหม่</h1>
+    <p class="note" style="margin:0 0 12px">กรอกรหัสผ่านใหม่ที่ต้องการใช้งาน (อย่างน้อย 6 ตัวอักษร)</p>
+    <label for="rpw1">รหัสผ่านใหม่</label>
+    <input id="rpw1" type="password" autocomplete="new-password" placeholder="อย่างน้อย 6 ตัวอักษร">
+    <label for="rpw2" style="margin-top:10px">ยืนยันรหัสผ่านใหม่อีกครั้ง</label>
+    <input id="rpw2" type="password" autocomplete="new-password" placeholder="กรอกรหัสผ่านใหม่อีกครั้ง">
+    <button type="button" id="rsave" class="primary" style="width:100%;margin-top:12px">บันทึกรหัสผ่านใหม่</button>
+    <div class="msg" id="rmsg" role="status"></div>
   </section>
 </div>
 
@@ -191,6 +216,18 @@ details[open] summary{margin-bottom:10px}
     <div class="legend" id="legend"></div>
   </section>
 
+  <section class="card" id="pwbox" hidden>
+    <details>
+      <summary>เปลี่ยนรหัสผ่าน</summary>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div><label for="npw1">รหัสผ่านใหม่ (อย่างน้อย 6 ตัวอักษร)</label><input id="npw1" type="password" autocomplete="new-password" placeholder="กรอกรหัสผ่านใหม่"></div>
+        <div><label for="npw2">ยืนยันรหัสผ่านใหม่</label><input id="npw2" type="password" autocomplete="new-password" placeholder="กรอกรหัสผ่านใหม่อีกครั้ง"></div>
+        <button type="button" id="chpw" class="primary" style="margin-top:4px">บันทึกรหัสผ่านใหม่</button>
+        <div class="msg" id="pmsg" role="status" style="margin-top:2px"></div>
+      </div>
+    </details>
+  </section>
+
 </div>
 
 <div class="wrap stm" id="stv" hidden>
@@ -237,7 +274,7 @@ var now=new Date(),Y=now.getFullYear(),M=now.getMonth();
 var S={sa:50,name:'',sal:20000,dv:30,hd:8,mul:1.5};
 var months={},sel={},multi=false,cs=null;
 var CONFIG={SUPABASE_URL:'https://rqkdgrnrafljrbdsaqeg.supabase.co',SUPABASE_ANON_KEY:'sb_publishable_EU6k22u7WSr72ltxR1aB2w_dL9ZhoXF'};
-var sb=null,uid=null,userEmail='',store='local',started=false;
+var sb=null,uid=null,userEmail='',store='local',started=false,isRecovery=false;
 var dl={save:function(o){
   var url=URL.createObjectURL(o.data),a=document.createElement('a');
   a.href=url;a.download=o.filename;document.body.appendChild(a);a.click();a.remove();
@@ -247,17 +284,58 @@ var dl={save:function(o){
 function mkey(y,m){return (y===undefined?Y:y)+'-'+p2((m===undefined?M:m)+1)}
 function setStatus(t,err){var e=$('status');e.textContent=t;e.className='status'+(err?' err':'')}
 
+/* ---------- remember credentials ---------- */
+var CRED_KEY='tcx-saved-cred';
+function loadSavedCred(){
+  try{
+    var raw=localStorage.getItem(CRED_KEY);
+    if(!raw)return;
+    var c=JSON.parse(raw);
+    if(c.em)$('em').value=c.em;
+    if(c.pw)$('pw').value=c.pw;
+    $('rem').checked=true;
+  }catch(e){}
+}
+function saveCred(em,pw){
+  try{
+    if($('rem').checked){
+      localStorage.setItem(CRED_KEY,JSON.stringify({em:em,pw:pw}));
+    }else{
+      localStorage.removeItem(CRED_KEY);
+    }
+  }catch(e){}
+}
+function updateSavedPw(newPw){
+  try{
+    var raw=localStorage.getItem(CRED_KEY);
+    if(raw){
+      var c=JSON.parse(raw);
+      c.pw=newPw;
+      localStorage.setItem(CRED_KEY,JSON.stringify(c));
+    }
+  }catch(e){}
+}
+
 /* ---------- storage ---------- */
 function setUser(u){uid=u.id;userEmail=u.email||'';store='db'}
+function showReset(){
+  isRecovery=true;
+  $('auth').hidden=true;$('main').hidden=true;$('stv').hidden=true;$('resetv').hidden=false;
+}
 var readyP=(async function(){
   try{
+    if(window.location.hash&&window.location.hash.indexOf('type=recovery')!==-1){isRecovery=true}
     if(CONFIG.SUPABASE_URL&&CONFIG.SUPABASE_ANON_KEY&&window.supabase){
       sb=window.supabase.createClient(CONFIG.SUPABASE_URL,CONFIG.SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
-      var r=await sb.auth.getSession();
-      if(r&&r.data&&r.data.session)setUser(r.data.session.user);
       sb.auth.onAuthStateChange(function(ev,session){
-        if(ev==='SIGNED_IN'&&session&&!started){setUser(session.user);startApp()}
+        if(ev==='PASSWORD_RECOVERY'){showReset();return}
+        if(ev==='SIGNED_IN'&&session&&!started&&!isRecovery){setUser(session.user);startApp()}
       });
+      var r=await sb.auth.getSession();
+      if(r&&r.data&&r.data.session){
+        setUser(r.data.session.user);
+        if(isRecovery)showReset();
+      }
     }
   }catch(e){console.error(e)}
 })();
@@ -478,6 +556,7 @@ function showStatement(){
   $('exmsg').textContent='';
 }
 function route(){
+  if(isRecovery)return;
   if(sb&&!uid)return;
   var st=location.hash==='#statement';
   $('main').hidden=st;$('stv').hidden=!st;
@@ -629,9 +708,9 @@ window.addEventListener('hashchange',route);
 function fillSettings(){$('nm').value=S.name;$('sal').value=S.sal;$('hd').value=S.hd;$('mul').value=S.mul;$('sa').value=S.sa}
 
 async function startApp(){
-  if(started)return;started=true;
-  $('auth').hidden=true;
-  if(store==='db'){$('so').hidden=false}
+  if(started||isRecovery)return;started=true;
+  $('auth').hidden=true;$('resetv').hidden=true;
+  if(store==='db'){$('so').hidden=false;$('pwbox').hidden=false}
   route();
   await loadSettings();fillSettings();
   await loadMonth(mkey());
@@ -639,25 +718,66 @@ async function startApp(){
   setStatus(store==='db'?('บันทึกอัตโนมัติ · '+userEmail):'บันทึกในเบราว์เซอร์นี้');
   if(location.hash==='#statement')showStatement();
 }
-function amsg(t){$('amsg').textContent=t}
-function showAuth(){$('main').hidden=true;$('stv').hidden=true;$('auth').hidden=false}
-$('login').onclick=async function(){
+function amsg(t,cls){var e=$('amsg');e.textContent=t;e.className='msg'+(cls?' '+cls:'')}
+function showAuth(){loadSavedCred();$('main').hidden=true;$('stv').hidden=true;$('resetv').hidden=true;$('auth').hidden=false}
+
+$('authform').onsubmit=async function(ev){
+  ev.preventDefault();
   var em=$('em').value.trim(),pw=$('pw').value;
-  if(!/^\S+@\S+\.\S+$/.test(em)){amsg('กรอกอีเมลให้ถูกต้องก่อน');return}
-  if(pw.length<6){amsg('รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร');return}
+  if(!/^\S+@\S+\.\S+$/.test(em)){amsg('กรอกอีเมลให้ถูกต้องก่อน','err');return}
+  if(pw.length<6){amsg('รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร','err');return}
   amsg('กำลังเข้าสู่ระบบ…');
   var r=await sb.auth.signInWithPassword({email:em,password:pw});
-  if(r.error){console.error(r.error);amsg('อีเมลหรือรหัสผ่านไม่ถูกต้อง (หากยังไม่เคยสมัคร ให้กดปุ่มสมัครสมาชิกใหม่)');return}
+  if(r.error){console.error(r.error);amsg('อีเมลหรือรหัสผ่านไม่ถูกต้อง (หากยังไม่เคยสมัคร ให้กดปุ่มสมัครสมาชิกใหม่)','err');return}
+  saveCred(em,pw);
   if(r.data&&r.data.user&&!started){setUser(r.data.user);startApp()}
 };
 $('signup').onclick=async function(){
   var em=$('em').value.trim(),pw=$('pw').value;
-  if(!/^\S+@\S+\.\S+$/.test(em)){amsg('กรอกอีเมลให้ถูกต้องก่อน');return}
-  if(pw.length<6){amsg('ตั้งรหัสผ่านอย่างน้อย 6 ตัวอักษร');return}
+  if(!/^\S+@\S+\.\S+$/.test(em)){amsg('กรอกอีเมลให้ถูกต้องก่อน','err');return}
+  if(pw.length<6){amsg('ตั้งรหัสผ่านอย่างน้อย 6 ตัวอักษร','err');return}
   amsg('กำลังสมัครสมาชิก…');
   var r=await sb.auth.signUp({email:em,password:pw});
-  if(r.error){console.error(r.error);amsg('สมัครไม่สำเร็จ: '+r.error.message);return}
+  if(r.error){console.error(r.error);amsg('สมัครไม่สำเร็จ: '+r.error.message,'err');return}
+  saveCred(em,pw);
   if(r.data&&r.data.user&&!started){setUser(r.data.user);startApp()}
+};
+$('forgot').onclick=async function(){
+  var em=$('em').value.trim();
+  if(!/^\S+@\S+\.\S+$/.test(em)){amsg('กรอกอีเมลที่สมัครไว้ในช่องด้านบนก่อน แล้วค่อยกดปุ่มลืมรหัสผ่าน','err');$('em').focus();return}
+  amsg('กำลังส่งลิงก์ตั้งรหัสผ่านใหม่ไปที่อีเมล…');
+  var redirectUrl=window.location.origin+window.location.pathname;
+  var r=await sb.auth.resetPasswordForEmail(em,{redirectTo:redirectUrl});
+  if(r.error){
+    console.error(r.error);
+    amsg('ส่งอีเมลไม่สำเร็จ: '+r.error.message+' (หากส่งถี่เกินไป ให้รอสักครู่หรือแจ้งผู้ดูแลระบบช่วยตั้งรหัสใหม่ให้)','err');
+    return;
+  }
+  amsg('ส่งลิงก์ตั้งรหัสผ่านใหม่ไปที่ '+em+' แล้ว กรุณาตรวจสอบในกล่องจดหมาย (หรือโฟลเดอร์จดหมายขยะ/Spam)','ok');
+};
+$('rsave').onclick=async function(){
+  var p1=$('rpw1').value,p2v=$('rpw2').value,rm=$('rmsg');
+  if(p1.length<6){rm.textContent='รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร';rm.className='msg err';return}
+  if(p1!==p2v){rm.textContent='รหัสผ่านใหม่ทั้ง 2 ช่องไม่ตรงกัน';rm.className='msg err';return}
+  rm.textContent='กำลังบันทึกรหัสผ่านใหม่…';rm.className='msg';
+  var r=await sb.auth.updateUser({password:p1});
+  if(r.error){rm.textContent='เปลี่ยนรหัสผ่านไม่สำเร็จ: '+r.error.message;rm.className='msg err';return}
+  updateSavedPw(p1);
+  rm.textContent='ตั้งรหัสผ่านใหม่เรียบร้อย กำลังเข้าสู่แอป…';rm.className='msg ok';
+  isRecovery=false;
+  history.replaceState(null,'',window.location.pathname);
+  setTimeout(function(){startApp()},1000);
+};
+$('chpw').onclick=async function(){
+  var p1=$('npw1').value,p2v=$('npw2').value,pm=$('pmsg');
+  if(p1.length<6){pm.textContent='รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร';pm.className='msg err';return}
+  if(p1!==p2v){pm.textContent='รหัสผ่านใหม่ทั้ง 2 ช่องไม่ตรงกัน';pm.className='msg err';return}
+  pm.textContent='กำลังเปลี่ยนรหัสผ่าน…';pm.className='msg';
+  var r=await sb.auth.updateUser({password:p1});
+  if(r.error){pm.textContent='เปลี่ยนรหัสผ่านไม่สำเร็จ: '+r.error.message;pm.className='msg err';return}
+  updateSavedPw(p1);
+  $('npw1').value='';$('npw2').value='';
+  pm.textContent='เปลี่ยนรหัสผ่านสำเร็จแล้ว';pm.className='msg ok';
 };
 $('so').onclick=async function(){await sb.auth.signOut();location.reload()};
 
@@ -665,6 +785,7 @@ renderLegend();renderChips();fillSettings();renderCal();
 if(!CONFIG.SUPABASE_URL)route();
 (async function(){
   await readyP;
+  if(isRecovery)return;
   if(sb&&!uid){showAuth();return}
   await startApp();
 })();

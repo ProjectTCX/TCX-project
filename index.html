@@ -34,6 +34,10 @@ button:hover{border-color:var(--muted)}
 button:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 input[type="text"],input[type="email"],input[type="password"],input[type="number"]{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-height:40px}
 label{display:block;font-size:12.5px;color:var(--muted);margin-bottom:3px}
+.pw-wrap{position:relative;display:flex;align-items:center}
+.pw-wrap input{padding-right:42px}
+.eye-btn{position:absolute;right:4px;top:50%;transform:translateY(-50%);background:transparent;border:none;min-height:34px;width:36px;padding:0;display:flex;align-items:center;justify-content:center;color:var(--muted);border-radius:6px}
+.eye-btn:hover{border:none;color:var(--fg);background:var(--bg)}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px}
 .top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
 .status{font-size:12.5px;color:var(--muted)}
@@ -119,7 +123,10 @@ details[open] summary{margin-bottom:10px}
       <label for="em">อีเมล</label>
       <input id="em" name="email" type="email" autocomplete="username" inputmode="email" placeholder="name@example.com">
       <label for="pw" style="margin-top:10px">รหัสผ่าน</label>
-      <input id="pw" name="password" type="password" autocomplete="current-password" placeholder="อย่างน้อย 6 ตัวอักษร">
+      <div class="pw-wrap">
+        <input id="pw" name="password" type="password" autocomplete="current-password" placeholder="อย่างน้อย 6 ตัวอักษร">
+        <button type="button" class="eye-btn" data-eye="pw" aria-label="แสดงรหัสผ่าน"></button>
+      </div>
       <div class="auth-opts">
         <label class="chk"><input type="checkbox" id="rem" checked> จำอีเมลและรหัสผ่านไว้ในเครื่องนี้</label>
         <button type="button" id="forgot" class="linkbtn">ลืมรหัสผ่าน?</button>
@@ -138,9 +145,15 @@ details[open] summary{margin-bottom:10px}
     <h1 style="margin-bottom:6px">ตั้งรหัสผ่านใหม่</h1>
     <p class="note" style="margin:0 0 12px">กรอกรหัสผ่านใหม่ที่ต้องการใช้งาน (อย่างน้อย 6 ตัวอักษร)</p>
     <label for="rpw1">รหัสผ่านใหม่</label>
-    <input id="rpw1" type="password" autocomplete="new-password" placeholder="อย่างน้อย 6 ตัวอักษร">
+    <div class="pw-wrap">
+      <input id="rpw1" type="password" autocomplete="new-password" placeholder="อย่างน้อย 6 ตัวอักษร">
+      <button type="button" class="eye-btn" data-eye="rpw1" aria-label="แสดงรหัสผ่าน"></button>
+    </div>
     <label for="rpw2" style="margin-top:10px">ยืนยันรหัสผ่านใหม่อีกครั้ง</label>
-    <input id="rpw2" type="password" autocomplete="new-password" placeholder="กรอกรหัสผ่านใหม่อีกครั้ง">
+    <div class="pw-wrap">
+      <input id="rpw2" type="password" autocomplete="new-password" placeholder="กรอกรหัสผ่านใหม่อีกครั้ง">
+      <button type="button" class="eye-btn" data-eye="rpw2" aria-label="แสดงรหัสผ่าน"></button>
+    </div>
     <button type="button" id="rsave" class="primary" style="width:100%;margin-top:12px">บันทึกรหัสผ่านใหม่</button>
     <div class="msg" id="rmsg" role="status"></div>
   </section>
@@ -220,8 +233,20 @@ details[open] summary{margin-bottom:10px}
     <details>
       <summary>เปลี่ยนรหัสผ่าน</summary>
       <div style="display:flex;flex-direction:column;gap:8px">
-        <div><label for="npw1">รหัสผ่านใหม่ (อย่างน้อย 6 ตัวอักษร)</label><input id="npw1" type="password" autocomplete="new-password" placeholder="กรอกรหัสผ่านใหม่"></div>
-        <div><label for="npw2">ยืนยันรหัสผ่านใหม่</label><input id="npw2" type="password" autocomplete="new-password" placeholder="กรอกรหัสผ่านใหม่อีกครั้ง"></div>
+        <div>
+          <label for="npw1">รหัสผ่านใหม่ (อย่างน้อย 6 ตัวอักษร)</label>
+          <div class="pw-wrap">
+            <input id="npw1" type="password" autocomplete="new-password" placeholder="กรอกรหัสผ่านใหม่">
+            <button type="button" class="eye-btn" data-eye="npw1" aria-label="แสดงรหัสผ่าน"></button>
+          </div>
+        </div>
+        <div>
+          <label for="npw2">ยืนยันรหัสผ่านใหม่</label>
+          <div class="pw-wrap">
+            <input id="npw2" type="password" autocomplete="new-password" placeholder="กรอกรหัสผ่านใหม่อีกครั้ง">
+            <button type="button" class="eye-btn" data-eye="npw2" aria-label="แสดงรหัสผ่าน"></button>
+          </div>
+        </div>
         <button type="button" id="chpw" class="primary" style="margin-top:4px">บันทึกรหัสผ่านใหม่</button>
         <div class="msg" id="pmsg" role="status" style="margin-top:2px"></div>
       </div>
@@ -269,6 +294,21 @@ function autoOt(s){return (s==='M/A'||s==='A/N')?7.5:0}
 function effOt(e){return autoOt(e.s)+(+e.o||0)}
 function hint(c){return c+' = '+DESC[c]+(autoOt(c)?' · นับโอที '+autoOt(c)+' ชม. อัตโนมัติ ช่องล่วงเวลาใส่เฉพาะที่ทำเพิ่ม':'')+(hasAllow(c)?' · ค่ากะ '+fmt(+S.sa||0)+' บาท':'')}
 function num(x){return Math.round((+x||0)*100)/100}
+
+/* ---------- toggle password visibility (eye icons) ---------- */
+var SVG_EYE='<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+var SVG_EYE_OFF='<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+document.querySelectorAll('.eye-btn').forEach(function(btn){
+  btn.innerHTML=SVG_EYE_OFF;
+  btn.onclick=function(){
+    var inp=$(btn.getAttribute('data-eye'));
+    if(!inp)return;
+    var show=inp.type==='password';
+    inp.type=show?'text':'password';
+    btn.innerHTML=show?SVG_EYE:SVG_EYE_OFF;
+    btn.setAttribute('aria-label',show?'ซ่อนรหัสผ่าน':'แสดงรหัสผ่าน');
+  };
+});
 
 var now=new Date(),Y=now.getFullYear(),M=now.getMonth();
 var S={sa:50,name:'',sal:20000,dv:30,hd:8,mul:1.5};

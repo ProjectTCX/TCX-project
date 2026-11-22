@@ -200,7 +200,7 @@ details[open] summary{margin-bottom:10px}
       <div class="grid4">
         <div style="grid-column:1/-1"><label for="nm">ชื่อพนักงาน (แสดงในสเตทเม้นต์)</label><input id="nm" type="text" placeholder="ชื่อ-นามสกุล"></div>
         <div><label for="sal">เงินเดือน (บาท)</label><input id="sal" type="number" inputmode="decimal" min="0"></div>
-        <div><label for="dv">หารวัน (รอบตัดวิค 26–25)</label><input id="dv" type="text" readonly aria-readonly="true"></div>
+        <div><label for="dv" id="dvl">หารวัน</label><input id="dv" type="text" readonly aria-readonly="true"></div>
         <div><label for="hd">ชั่วโมงต่อวัน</label><input id="hd" type="number" inputmode="decimal" min="1"></div>
         <div><label for="mul">ตัวคูณโอที</label><input id="mul" type="number" inputmode="decimal" step="0.5" min="0"></div>
         <div><label for="sa">ค่ากะ (บาท/กะ) เฉพาะ A, N, A/N</label><input id="sa" type="number" inputmode="decimal" min="0"></div>
@@ -470,8 +470,9 @@ function calc(y,m){
 
   var pay=hr*mul*ot,ded=sal/dv*c.WOP,ad=c.A+c.N+c['A/N'],allow=ad*sa;
   var otDays=rows.filter(function(r){return r.o>0}).length;
-  var periodText='รอบวันที่ 26 '+THS[p.m]+' '+(p.y+543)+' – 25 '+THS[m]+' '+(y+543);
-  return {sa:sa,ad:ad,allow:allow,otDays:otDays,y:y,m:m,py:p.y,pm:p.m,periodText:periodText,sal:sal,dv:dv,hd:hd,mul:mul,hr:hr,c:c,rows:rows,ot:ot,pay:pay,ded:ded,tot:sal-ded+pay+allow,n:dv};
+  var shortRange='26 '+THS[p.m]+' '+(p.y+543)+' – 25 '+THS[m]+' '+(y+543);
+  var periodText='รอบวันที่ '+shortRange;
+  return {sa:sa,ad:ad,allow:allow,otDays:otDays,y:y,m:m,py:p.y,pm:p.m,shortRange:shortRange,periodText:periodText,sal:sal,dv:dv,hd:hd,mul:mul,hr:hr,c:c,rows:rows,ot:ot,pay:pay,ded:ded,tot:sal-ded+pay+allow,n:dv};
 }
 
 /* ---------- main view ---------- */
@@ -519,6 +520,7 @@ function renderSummary(){
   $('stt').textContent='สรุปเดือน '+TH[M]+' '+(Y+543);
   $('stperiod').textContent=v.periodText+' ('+v.dv+' วัน)';
   $('oth_t').textContent=num(v.ot)+' ชม.';
+  $('dvl').textContent='หารวัน ('+v.shortRange+')';
   $('dv').value=v.dv+' วัน';
   $('b1').textContent=fmt(v.sal);
   $('b2l').textContent='หักลาไม่รับค่าจ้าง ('+v.c.WOP+' วัน)';
@@ -652,7 +654,7 @@ async function makePdf(v){
 async function makeXlsx(v){
   var FN='Tahoma',wb=new ExcelJS.Workbook();
   var ws=wb.addWorksheet('Statement',{views:[{showGridLines:false}],pageSetup:{paperSize:9,fitToPage:true,fitToWidth:1,fitToHeight:0}});
-  [28,14,26,12,15,15,15].forEach(function(w,i){ws.getColumn(i+1).width=w});
+  [30,14,26,12,15,15,15].forEach(function(w,i){ws.getColumn(i+1).width=w});
   var thin={style:'thin',color:{argb:'FFBFBFBF'}},box={top:thin,bottom:thin,left:thin,right:thin};
   function put(addr,val,o){
     o=o||{};var c=ws.getCell(addr);
@@ -668,7 +670,7 @@ async function makeXlsx(v){
   put('A2',TH[v.m]+' '+(v.y+543)+' ('+v.periodText+')',{size:13,bold:true});
   put('A3','พนักงาน: '+(S.name||'-'),{color:'595959'});
   put('A5','ตั้งค่าการคำนวณ',{size:12,bold:true});
-  var inp=[['เงินเดือน (บาท)',v.sal,'#,##0'],['หารวัน (รอบตัดวิค 26–25)',v.dv,'0'],['ชั่วโมงทำงาน/วัน',v.hd,'0'],['ตัวคูณโอที',v.mul,'0.0#']];
+  var inp=[['เงินเดือน (บาท)',v.sal,'#,##0'],['หารวัน ('+v.shortRange+')',v.dv,'0'],['ชั่วโมงทำงาน/วัน',v.hd,'0'],['ตัวคูณโอที',v.mul,'0.0#']];
   inp.forEach(function(r,i){var n=6+i;put('A'+n,r[0],{box:true});put('B'+n,r[1],{color:'0000FF',fmt:r[2],box:true,align:'right'})});
   put('A10','ค่าแรงต่อชั่วโมง (บาท)',{box:true});put('B10',{formula:'B6/B7/B8',result:v.hr},{fmt:'#,##0.00',box:true,align:'right'});
   put('A11','ค่าโอทีต่อชั่วโมง (บาท)',{box:true});put('B11',{formula:'B10*B9',result:v.hr*v.mul},{fmt:'#,##0.00',box:true,align:'right'});

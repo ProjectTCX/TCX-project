@@ -200,7 +200,7 @@ details[open] summary{margin-bottom:10px}
       <div class="grid4">
         <div style="grid-column:1/-1"><label for="nm">ชื่อพนักงาน (แสดงในสเตทเม้นต์)</label><input id="nm" type="text" placeholder="ชื่อ-นามสกุล"></div>
         <div><label for="sal">เงินเดือน (บาท)</label><input id="sal" type="number" inputmode="decimal" min="0"></div>
-        <div><label for="dv">หารวัน (อัตโนมัติตามเดือน)</label><input id="dv" type="text" readonly aria-readonly="true"></div>
+        <div><label for="dv">หารวัน (รอบตัดวิค 26–25)</label><input id="dv" type="text" readonly aria-readonly="true"></div>
         <div><label for="hd">ชั่วโมงต่อวัน</label><input id="hd" type="number" inputmode="decimal" min="1"></div>
         <div><label for="mul">ตัวคูณโอที</label><input id="mul" type="number" inputmode="decimal" step="0.5" min="0"></div>
         <div><label for="sa">ค่ากะ (บาท/กะ) เฉพาะ A, N, A/N</label><input id="sa" type="number" inputmode="decimal" min="0"></div>
@@ -211,16 +211,17 @@ details[open] summary{margin-bottom:10px}
 
   <section class="card" aria-label="สรุปเดือน">
     <h2 id="stt">สรุปเดือน</h2>
-    <div class="otbox"><div><small>โอทีรวมเดือนนี้</small><b id="oth_t">0 ชม.</b></div><div><small>ค่ากะเดือนนี้</small><b id="al_t">0 กะ</b></div></div>
+    <div class="note" id="stperiod" style="margin-top:2px"></div>
+    <div class="otbox"><div><small>โอทีรวมรอบวิคนี้</small><b id="oth_t">0 ชม.</b></div><div><small>ค่ากะรอบวิคนี้</small><b id="al_t">0 กะ</b></div></div>
     <div class="counts" id="cnt" style="margin-top:10px"></div>
     <div class="sum">
       <div class="l"><span>เงินเดือน</span><span id="b1">0</span></div>
       <div class="l"><span id="b2l">หักลาไม่รับค่าจ้าง</span><span id="b2" class="neg">0</span></div>
       <div class="l"><span id="b3l">ค่าโอที</span><span id="b3">0</span></div>
       <div class="l"><span id="b4l">ค่ากะ</span><span id="b4">0</span></div>
-      <div class="t"><span>รวมที่จะได้เดือนนี้</span><span id="gt">0</span></div>
+      <div class="t"><span>รวมที่จะได้รอบวิคนี้</span><span id="gt">0</span></div>
     </div>
-    <div class="note">ยังไม่หักประกันสังคมและภาษี</div>
+    <div class="note">ยังไม่หักประกันสังคมและภาษี · นับรอบ 26 เดือนก่อน – 25 เดือนนี้</div>
     <button id="exp" class="primary" style="width:100%;margin-top:12px">ดูสเตทเม้นต์ / ส่งออก</button>
   </section>
 
@@ -322,6 +323,7 @@ var dl={save:function(o){
 }};
 
 function mkey(y,m){return (y===undefined?Y:y)+'-'+p2((m===undefined?M:m)+1)}
+function prevYM(y,m){return m===0?{y:y-1,m:11}:{y:y,m:m-1}}
 function setStatus(t,err){var e=$('status');e.textContent=t;e.className='status'+(err?' err':'')}
 
 /* ---------- remember credentials ---------- */
@@ -402,6 +404,10 @@ async function loadMonth(key){
   }catch(e){setStatus('โหลดข้อมูลเดือนนี้ไม่ได้',true)}
   months[key]={d:d};
 }
+async function loadCycleMonths(y,m){
+  var p=prevYM(y,m);
+  await Promise.all([loadMonth(mkey(p.y,p.m)),loadMonth(mkey(y,m))]);
+}
 var chain=Promise.resolve();
 function persist(fn){
   chain=chain.then(async function(){
@@ -434,23 +440,38 @@ function saveSettingsSoon(){
   },700);
 }
 
-/* ---------- calculation ---------- */
+/* ---------- calculation (cutoff 26 prev month - 25 current month) ---------- */
 function calc(y,m){
-  var key=mkey(y,m),d=(months[key]||{d:{}}).d;
-  var n=new Date(y,m+1,0).getDate(),dv=n,hd=+S.hd||8,mul=(+S.mul===0||S.mul)?+S.mul:1.5,sal=+S.sal||0,sa=+S.sa||0;
+  var p=prevYM(y,m);
+  var prevDays=new Date(p.y,p.m+1,0).getDate();
+  var dv=(prevDays-26+1)+25;
+  var hd=+S.hd||8,mul=(+S.mul===0||S.mul)?+S.mul:1.5,sal=+S.sal||0,sa=+S.sa||0;
   var hr=sal/dv/hd;
   var c={},rows=[],ot=0;
   KEYS.forEach(function(x){c[x]=0});
-  for(var i=1;i<=n;i++){
-    var e=d[i];if(!e||!c.hasOwnProperty(e.s))continue;
+
+  var dPrev=(months[mkey(p.y,p.m)]||{d:{}}).d;
+  for(var i=26;i<=prevDays;i++){
+    var e=dPrev[i];if(!e||!c.hasOwnProperty(e.s))continue;
     var eo=effOt(e);
     c[e.s]++;ot+=eo;
     var amt=e.s==='WOP'?-(sal/dv):eo*hr*mul+(hasAllow(e.s)?sa:0);
-    rows.push({day:i,dow:new Date(y,m,i).getDay(),s:e.s,o:eo,amt:amt});
+    rows.push({day:i,m:p.m,y:p.y,dow:new Date(p.y,p.m,i).getDay(),s:e.s,o:eo,amt:amt});
   }
+
+  var dCurr=(months[mkey(y,m)]||{d:{}}).d;
+  for(var j=1;j<=25;j++){
+    var e2=dCurr[j];if(!e2||!c.hasOwnProperty(e2.s))continue;
+    var eo2=effOt(e2);
+    c[e2.s]++;ot+=eo2;
+    var amt2=e2.s==='WOP'?-(sal/dv):eo2*hr*mul+(hasAllow(e2.s)?sa:0);
+    rows.push({day:j,m:m,y:y,dow:new Date(y,m,j).getDay(),s:e2.s,o:eo2,amt:amt2});
+  }
+
   var pay=hr*mul*ot,ded=sal/dv*c.WOP,ad=c.A+c.N+c['A/N'],allow=ad*sa;
   var otDays=rows.filter(function(r){return r.o>0}).length;
-  return {sa:sa,ad:ad,allow:allow,otDays:otDays,y:y,m:m,sal:sal,dv:dv,hd:hd,mul:mul,hr:hr,c:c,rows:rows,ot:ot,pay:pay,ded:ded,tot:sal-ded+pay+allow,n:n};
+  var periodText='รอบวันที่ 26 '+THS[p.m]+' '+(p.y+543)+' – 25 '+THS[m]+' '+(y+543);
+  return {sa:sa,ad:ad,allow:allow,otDays:otDays,y:y,m:m,py:p.y,pm:p.m,periodText:periodText,sal:sal,dv:dv,hd:hd,mul:mul,hr:hr,c:c,rows:rows,ot:ot,pay:pay,ded:ded,tot:sal-ded+pay+allow,n:dv};
 }
 
 /* ---------- main view ---------- */
@@ -496,6 +517,7 @@ function renderSummary(){
   KEYS.forEach(function(x){h+='<div class="'+CLS[x]+'"><small>'+x+'</small><b>'+v.c[x]+'</b></div>'});
   $('cnt').innerHTML=h;
   $('stt').textContent='สรุปเดือน '+TH[M]+' '+(Y+543);
+  $('stperiod').textContent=v.periodText+' ('+v.dv+' วัน)';
   $('oth_t').textContent=num(v.ot)+' ชม.';
   $('dv').value=v.dv+' วัน';
   $('b1').textContent=fmt(v.sal);
@@ -553,7 +575,7 @@ async function go(delta){
   M+=delta;if(M<0){M=11;Y--}if(M>11){M=0;Y++}
   sel={};cs=null;$('sinfo').textContent='';
   renderChips();renderCal();
-  await readyP;await loadMonth(mkey());renderCal();
+  await readyP;await loadCycleMonths(Y,M);renderCal();
 }
 
 /* ---------- statement ---------- */
@@ -567,6 +589,7 @@ function stmtHTML(v,C){
   var h='<div style="color:'+C.fg+'">';
   h+='<div style="font-size:12.5px;color:'+C.muted+'">สเตทเม้นต์ประจำเดือน</div>';
   h+='<div style="font-size:22px;font-weight:600;line-height:1.3">'+TH[v.m]+' '+(v.y+543)+'</div>';
+  h+='<div style="font-size:13px;color:'+C.muted+';margin-top:2px">'+v.periodText+' ('+v.dv+' วัน)</div>';
   h+='<div style="font-size:13.5px;color:'+C.muted+';margin:2px 0 14px">พนักงาน: '+esc(S.name||'-')+'</div>';
   h+='<div style="border:1px solid '+C.line+';border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:14px">';
   h+='<div style="display:flex;justify-content:space-between;padding:2px 0"><span style="color:'+C.muted+'">เงินเดือน</span><span>'+fmt(v.sal)+'</span></div>';
@@ -580,18 +603,19 @@ function stmtHTML(v,C){
   h+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:6px;margin-bottom:16px">';
   KEYS.forEach(function(x){h+='<div style="border:1px solid '+C.line+';border-radius:8px;padding:4px 8px;line-height:1.3"><div style="font-size:11px;color:'+C.muted+'">'+x+'</div><div style="font-size:16px;font-weight:600">'+v.c[x]+'</div></div>'});
   h+='</div>';
-  h+='<div style="font-size:13px;color:'+C.muted+';margin-bottom:6px">รายละเอียดรายวัน</div>';
+  h+='<div style="font-size:13px;color:'+C.muted+';margin-bottom:6px">รายละเอียดรายวัน ('+v.periodText+')</div>';
   h+='<table style="width:100%;border-collapse:collapse;font-size:13.5px"><tr style="color:'+C.muted+';font-size:12.5px;text-align:left"><th style="font-weight:400;padding:4px 4px 4px 0;text-align:left">วันที่</th><th style="font-weight:400;text-align:left">กะ</th><th style="font-weight:400;text-align:left">เวลา / หมายเหตุ</th><th style="font-weight:400;text-align:right">โอที</th><th style="font-weight:400;text-align:right">บาท</th></tr>';
-  if(!v.rows.length)h+='<tr><td colspan="5" style="padding:10px 0;color:'+C.muted+';border-top:1px solid '+C.line+'">ยังไม่มีข้อมูลในเดือนนี้</td></tr>';
+  if(!v.rows.length)h+='<tr><td colspan="5" style="padding:10px 0;color:'+C.muted+';border-top:1px solid '+C.line+'">ยังไม่มีข้อมูลในรอบวิคนี้</td></tr>';
   v.rows.forEach(function(r){
     var a=r.s==='WOP'?'<span style="color:'+C.danger+'">-'+fmt(-r.amt)+'</span>':(r.amt!==0?fmt(r.amt):'-');
-    h+='<tr><td style="padding:6px 4px 6px 0;border-top:1px solid '+C.line+'">'+DWP[r.dow]+' '+r.day+'</td><td style="border-top:1px solid '+C.line+'">'+chip(r.s,C)+'</td><td style="border-top:1px solid '+C.line+'">'+DESC[r.s]+'</td><td style="text-align:right;border-top:1px solid '+C.line+'">'+(r.o>0?num(r.o):'-')+'</td><td style="text-align:right;border-top:1px solid '+C.line+'">'+a+'</td></tr>';
+    h+='<tr><td style="padding:6px 4px 6px 0;border-top:1px solid '+C.line+'">'+DWP[r.dow]+' '+r.day+' '+THS[r.m]+'</td><td style="border-top:1px solid '+C.line+'">'+chip(r.s,C)+'</td><td style="border-top:1px solid '+C.line+'">'+DESC[r.s]+'</td><td style="text-align:right;border-top:1px solid '+C.line+'">'+(r.o>0?num(r.o):'-')+'</td><td style="text-align:right;border-top:1px solid '+C.line+'">'+a+'</td></tr>';
   });
   h+='</table>';
   h+='<div style="font-size:12px;color:'+C.muted+';margin-top:12px">เงินเดือน '+fmt(v.sal)+' บาท หาร '+v.dv+' วัน หาร '+v.hd+' ชม. โอทีคูณ '+v.mul+' ค่ากะ '+fmt(v.sa)+' บาท/กะ</div>';
   return h+'</div>';
 }
-function showStatement(){
+async function showStatement(){
+  await loadCycleMonths(Y,M);
   $('stbody').innerHTML=stmtHTML(calc(Y,M),SCREEN);
   $('exmsg').textContent='';
 }
@@ -640,10 +664,10 @@ async function makeXlsx(v){
     return c;
   }
   put('A1','สเตทเม้นต์ประจำเดือน',{size:16,bold:true});
-  put('A2',TH[v.m]+' '+(v.y+543),{size:13,bold:true});
+  put('A2',TH[v.m]+' '+(v.y+543)+' ('+v.periodText+')',{size:13,bold:true});
   put('A3','พนักงาน: '+(S.name||'-'),{color:'595959'});
   put('A5','ตั้งค่าการคำนวณ',{size:12,bold:true});
-  var inp=[['เงินเดือน (บาท)',v.sal,'#,##0'],['หารวัน',v.dv,'0'],['ชั่วโมงทำงาน/วัน',v.hd,'0'],['ตัวคูณโอที',v.mul,'0.0#']];
+  var inp=[['เงินเดือน (บาท)',v.sal,'#,##0'],['หารวัน (รอบตัดวิค 26–25)',v.dv,'0'],['ชั่วโมงทำงาน/วัน',v.hd,'0'],['ตัวคูณโอที',v.mul,'0.0#']];
   inp.forEach(function(r,i){var n=6+i;put('A'+n,r[0],{box:true});put('B'+n,r[1],{color:'0000FF',fmt:r[2],box:true,align:'right'})});
   put('A10','ค่าแรงต่อชั่วโมง (บาท)',{box:true});put('B10',{formula:'B6/B7/B8',result:v.hr},{fmt:'#,##0.00',box:true,align:'right'});
   put('A11','ค่าโอทีต่อชั่วโมง (บาท)',{box:true});put('B11',{formula:'B10*B9',result:v.hr*v.mul},{fmt:'#,##0.00',box:true,align:'right'});
@@ -670,13 +694,13 @@ async function makeXlsx(v){
     put('C'+r,DESC[x],{box:true});
   });
 
-  put('A32','รายละเอียดรายวัน',{size:12,bold:true});
+  put('A32','รายละเอียดรายวัน ('+v.periodText+')',{size:12,bold:true});
   ['วันที่','กะ','เวลา / หมายเหตุ','โอที (ชม.)','ค่าโอที (บาท)','หักเงิน (บาท)','ค่ากะ (บาท)'].forEach(function(t,i){put(String.fromCharCode(65+i)+'33',t,{bold:true,fill:'EDEDED',box:true,align:'center'})});
   var dm='#,##0;-#,##0;"-"';
   if(!v.rows.length){for(var q=1;q<=7;q++)ws.getCell(r0,q).border=box}
   v.rows.forEach(function(r,i){
     var n=r0+i,c=COL[r.s];
-    put('A'+n,DWP[r.dow]+' '+r.day+' '+THS[v.m],{box:true});
+    put('A'+n,DWP[r.dow]+' '+r.day+' '+THS[r.m],{box:true});
     put('B'+n,r.s,{bold:true,color:c[1],fill:c[0]||undefined,box:true,align:'center'});
     put('C'+n,DESC[r.s],{box:true});
     put('D'+n,r.o>0?r.o:null,{color:'0000FF',fmt:'0.0',box:true,align:'right'});
@@ -700,6 +724,7 @@ async function doExport(kind){
   if(!dl){msg.textContent='ดาวน์โหลดไฟล์ไม่ได้ในเบราว์เซอร์นี้';return}
   busy=true;msg.textContent='กำลังสร้างไฟล์…';
   try{
+    await loadCycleMonths(Y,M);
     var v=calc(Y,M),name='statement_'+mkey()+(kind==='pdf'?'.pdf':'.xlsx');
     var blob=kind==='pdf'?await makePdf(v):await makeXlsx(v);
     await dl.save({filename:name,data:blob});
@@ -753,7 +778,7 @@ async function startApp(){
   if(store==='db'){$('so').hidden=false;$('pwbox').hidden=false}
   route();
   await loadSettings();fillSettings();
-  await loadMonth(mkey());
+  await loadCycleMonths(Y,M);
   choose(now.getDate());
   setStatus(store==='db'?('บันทึกอัตโนมัติ · '+userEmail):'บันทึกในเบราว์เซอร์นี้');
   if(location.hash==='#statement')showStatement();

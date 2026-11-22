@@ -221,7 +221,7 @@ details[open] summary{margin-bottom:10px}
       <div class="l"><span id="b4l">ค่ากะ</span><span id="b4">0</span></div>
       <div class="t"><span>รวมที่จะได้รอบวิคนี้</span><span id="gt">0</span></div>
     </div>
-    <div class="note">ยังไม่หักประกันสังคมและภาษี · นับรอบ 26 เดือนก่อน – 25 เดือนนี้</div>
+    <div class="note" id="stnote">ยังไม่หักประกันสังคมและภาษี</div>
     <button id="exp" class="primary" style="width:100%;margin-top:12px">ดูสเตทเม้นต์ / ส่งออก</button>
   </section>
 
@@ -529,6 +529,7 @@ function renderSummary(){
   $('b4').textContent='+'+fmt(v.allow);
   $('al_t').textContent=v.ad+' กะ · '+fmt(v.allow)+' บาท';
   $('gt').textContent=fmt(v.tot)+' บาท';
+  $('stnote').textContent='ยังไม่หักประกันสังคมและภาษี · '+v.periodText;
   $('rate').textContent='ค่าแรง '+fmt2(v.hr)+' บาท/ชม. · โอที '+fmt2(v.hr*v.mul)+' บาท/ชม.';
 }
 function choose(d){

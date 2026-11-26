@@ -60,21 +60,27 @@ label{display:block;font-size:12.5px;color:var(--muted);margin-bottom:3px}
 .sM{background:#5BAF5B;color:#10300F}
 .sA{background:#F2B93B;color:#412402}
 .sN{background:#10245E;color:#fff}
-.sMA{background:#C5D9EE;color:#042C53}
+.sMA{background:#93C5FD;color:#0F294A}
 .sAN{background:#E070F5;color:#2A0A33}
 .sANM{background:#EA580C;color:#fff}
-.sMAN{background:#0D9488;color:#fff}
+.sMAN{background:#166534;color:#fff}
 .sNMA{background:#4338CA;color:#fff}
 .sH{background:#E24B4A;color:#fff}
-.sPH{background:#6366F1;color:#fff}
-.sWOP{background:#6366F1;color:#fff}
-.sAL{background:#6366F1;color:#fff}
-.sSL{background:#6366F1;color:#fff}
+.sPH{background:#CBD5E1;color:#1E293B}
+.sWOP{background:#CBD5E1;color:#1E293B}
+.sAL{background:#CBD5E1;color:#1E293B}
+.sSL{background:#CBD5E1;color:#1E293B}
 .cell.shift{border:1px solid var(--line)}
+.cell.sMA{border-color:#60A5FA}
+.cell.sMAN{border-color:#14532D}
+.cell.sPH,.cell.sWOP,.cell.sAL,.cell.sSL{border-color:#94A3B8}
 .chips{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
-.chip{display:flex;flex-direction:column;align-items:center;padding:6px 2px;border:1px solid var(--line);line-height:1.25;color:#FFFFFF}
-.chip b{font-size:15px;font-weight:600;color:#FFFFFF}
-.chip span{font-size:11px;font-weight:400;color:#FFFFFF}
+.chip{display:flex;flex-direction:column;align-items:center;padding:6px 2px;border:1px solid var(--line);line-height:1.25;color:#111827}
+.chip b{font-size:15px;font-weight:600;color:#111827}
+.chip span{font-size:11px;font-weight:400;color:#111827}
+.chip.sMA{border-color:#60A5FA}
+.chip.sMAN{border-color:#14532D}
+.chip.sPH,.chip.sWOP,.chip.sAL,.chip.sSL{border-color:#94A3B8}
 .chip.on{outline:2.5px solid var(--accent);outline-offset:-1px}
 .row{display:flex;gap:10px;align-items:flex-end}
 .row>.grow{flex:1;min-width:0}
@@ -291,16 +297,16 @@ var COL={
   M:['5BAF5B','10300F'],
   A:['F2B93B','412402'],
   N:['10245E','FFFFFF'],
-  'M/A':['C5D9EE','042C53'],
+  'M/A':['93C5FD','0F294A'],
   'A/N':['E070F5','2A0A33'],
   'A/N/M':['EA580C','FFFFFF'],
-  'M/A/N':['0D9488','FFFFFF'],
+  'M/A/N':['166534','FFFFFF'],
   'N/M/A':['4338CA','FFFFFF'],
   H:['E24B4A','FFFFFF'],
-  PH:['6366F1','FFFFFF'],
-  WOP:['6366F1','FFFFFF'],
-  'A/L':['6366F1','FFFFFF'],
-  'S/L':['6366F1','FFFFFF']
+  PH:['CBD5E1','1E293B'],
+  WOP:['CBD5E1','1E293B'],
+  'A/L':['CBD5E1','1E293B'],
+  'S/L':['CBD5E1','1E293B']
 };
 var DESC={
   M:'07:00-16:00',
